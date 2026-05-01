@@ -135,6 +135,20 @@ button{cursor:pointer}
 .theme-btns{display:flex;background:var(--bg2);border-radius:var(--radius-sm);padding:3px;gap:2px}
 .theme-btn{padding:6px 14px;border:none;background:transparent;border-radius:6px;font-size:13px;color:var(--text2);transition:all .15s;white-space:nowrap}
 .theme-btn.active{background:var(--bg);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12);font-weight:500}
+/* Category list in settings */
+.cat-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--border)}
+.cat-item:last-child{border-bottom:none}
+.cat-dot{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.cat-name{flex:1;font-size:13px;font-weight:500}
+.cat-actions{display:flex;gap:4px;opacity:0;transition:opacity .15s}
+.cat-item:hover .cat-actions{opacity:1}
+.cat-actions button{background:none;border:none;font-size:13px;padding:3px 6px;border-radius:4px;color:var(--text2);cursor:pointer}
+.cat-actions button:hover{background:var(--bg3)}
+/* Emoji picker */
+.emoji-grid{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.emoji-grid span{font-size:18px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:6px;cursor:pointer;border:1.5px solid transparent;transition:all .1s}
+.emoji-grid span:hover{background:var(--bg2)}
+.emoji-grid span.selected{border-color:var(--purple);background:var(--bg2)}
 /* Danger zone */
 .danger-card{background:var(--bg);border:0.5px solid #E24B4A44;border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem}
 .danger-title{font-size:12px;font-weight:600;color:#E24B4A;text-transform:uppercase;letter-spacing:.05em;margin-bottom:1rem}
@@ -298,6 +312,14 @@ button{cursor:pointer}
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="settings-section">
+        <div class="settings-group-title">Transaction categories</div>
+        <div id="cat-list"></div>
+        <button class="add-btn" onclick="openModal('category')" style="margin-top:8px">+ Add category</button>
       </div>
     </div>
 
@@ -473,7 +495,7 @@ function showTab(btn, id){
   if(id==='transactions') loadTransactions();
   if(id==='budgets') loadBudgets();
   if(id==='goals') loadGoals();
-  if(id==='settings') renderSettingsTab();
+  if(id==='settings'){ renderSettingsTab(); renderCategoryList(); }
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────
@@ -530,6 +552,90 @@ async function onThemeChange(theme){
   });
   await saveSettingsToDB();
   showToast(`Theme set to ${theme}`);
+}
+
+// ── Categories ────────────────────────────────────────────────────────────
+const EMOJI_OPTIONS = ['🏠','🛒','🚗','🎬','💊','💰','📦','🍽️','✈️','📱','💻','🎮','🏥','🎓','💼','🏋️','🛍️','⚡','🎵','🏖️','🐶','☕','🎁','💈','🔧','📚','🧴','🌐','🏦','🎯'];
+
+async function renderCategoryList(){
+  const cats = await api('/api/categories');
+  const el = document.getElementById('cat-list');
+  if(!cats.length){ el.innerHTML='<div class="empty">No categories yet</div>'; return; }
+  el.innerHTML = cats.map(c=>`
+    <div class="cat-item">
+      <div class="cat-dot" style="background:${c.color}22;color:${c.color}">${c.icon}</div>
+      <span class="cat-name">${esc(c.name)}</span>
+      <div class="cat-actions">
+        <button onclick='editCategory(${JSON.stringify(c)})' title="Edit">✏️</button>
+        <button onclick="deleteCategory(${c.id},'${esc(c.name)}')" title="Delete">🗑️</button>
+      </div>
+    </div>`).join('');
+}
+
+async function deleteCategory(id, name){
+  if(!confirm(`Delete category "${name}"?`)) return;
+  await api(`/api/categories/${id}`,'DELETE');
+  showToast('Category deleted');
+  META = await api('/api/meta');
+  renderCategoryList();
+}
+
+function editCategory(c){
+  editingId = c.id;
+  openModal('category', c);
+}
+
+async function saveCategory(){
+  const name  = document.getElementById('f-cat-name').value.trim();
+  const icon  = document.getElementById('f-cat-icon').value;
+  const color = document.getElementById('f-cat-color').value;
+  if(!name){ showToast('Enter a category name'); return; }
+  let res;
+  if(editingId){
+    res = await api(`/api/categories/${editingId}`,'PUT',{name,icon,color});
+  } else {
+    res = await api('/api/categories','POST',{name,icon,color});
+  }
+  if(res.error){ showToast(res.error); return; }
+  showToast(editingId ? 'Category updated' : 'Category added');
+  META = await api('/api/meta');
+  closeModal();
+  renderCategoryList();
+}
+
+function categoryForm(d=null){
+  const selectedIcon  = d?.icon  || '📦';
+  const selectedColor = d?.color || '#888780';
+  const colors = ['#7F77DD','#1D9E75','#378ADD','#EF9F27','#E24B4A','#888780','#E91E8C','#00BCD4'];
+  const emojiGrid = EMOJI_OPTIONS.map(e=>
+    `<span class="${e===selectedIcon?'selected':''}" onclick="selectEmoji(this,'${e}')">${e}</span>`
+  ).join('');
+  const colorPicker = colors.map(c=>
+    `<span onclick="document.getElementById('f-cat-color').value='${c}';this.parentNode.querySelectorAll('span').forEach(s=>s.style.outline='none');this.style.outline='2px solid ${c}'" style="width:22px;height:22px;border-radius:50%;background:${c};display:inline-block;cursor:pointer;flex-shrink:0;outline:${c===selectedColor?'2px solid '+c:'none'}"></span>`
+  ).join('');
+  return `
+  <div class="modal-title">${d?'Edit':'Add'} Category</div>
+  <div class="form-row"><label class="form-label">Name</label><input id="f-cat-name" value="${esc(d?.name||'')}" placeholder="e.g. Subscriptions"></div>
+  <div class="form-row">
+    <label class="form-label">Icon</label>
+    <div class="emoji-grid" id="emoji-grid">${emojiGrid}</div>
+    <input type="hidden" id="f-cat-icon" value="${selectedIcon}">
+  </div>
+  <div class="form-row">
+    <label class="form-label">Color</label>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:4px">${colorPicker}</div>
+    <input type="hidden" id="f-cat-color" value="${selectedColor}">
+  </div>
+  <div class="form-actions">
+    <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+    <button class="btn-primary" onclick="saveCategory()">Save</button>
+  </div>`;
+}
+
+function selectEmoji(el, emoji){
+  document.getElementById('f-cat-icon').value = emoji;
+  document.querySelectorAll('#emoji-grid span').forEach(s=>s.classList.remove('selected'));
+  el.classList.add('selected');
 }
 
 // ── CSV Export ────────────────────────────────────────────────────────────
@@ -832,9 +938,10 @@ async function openModal(type, data=null){
   // Refresh goals list so newly added goals appear in the tx form
   if(type === 'tx') META.goals = (await api('/api/meta')).goals;
   const body = document.getElementById('modal-body');
-  if(type==='tx') body.innerHTML = txForm(data);
-  if(type==='budget') body.innerHTML = budgetForm(data);
-  if(type==='goal') body.innerHTML = goalForm(data);
+  if(type==='tx')       body.innerHTML = txForm(data);
+  if(type==='budget')   body.innerHTML = budgetForm(data);
+  if(type==='goal')     body.innerHTML = goalForm(data);
+  if(type==='category') body.innerHTML = categoryForm(data);
   document.getElementById('modal').style.display='flex';
 }
 

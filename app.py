@@ -4,15 +4,15 @@ from flask import Flask, request, jsonify, render_template, g, send_from_directo
 app = Flask(__name__)
 DB = os.path.join(os.path.dirname(__file__), 'finance.db')
 
-CATEGORIES = ['Housing', 'Food', 'Transport', 'Entertainment', 'Health', 'Income', 'Other']
-CAT_COLORS = {
-    'Housing': '#7F77DD', 'Food': '#1D9E75', 'Transport': '#378ADD',
-    'Entertainment': '#EF9F27', 'Health': '#E24B4A', 'Income': '#1D9E75', 'Other': '#888780'
-}
-CAT_ICONS = {
-    'Housing': '🏠', 'Food': '🛒', 'Transport': '🚗',
-    'Entertainment': '🎬', 'Health': '💊', 'Income': '💰', 'Other': '📦'
-}
+DEFAULT_CATEGORIES = [
+    ('Housing',       '🏠', '#7F77DD', 0),
+    ('Food',          '🛒', '#1D9E75', 0),
+    ('Transport',     '🚗', '#378ADD', 0),
+    ('Entertainment', '🎬', '#EF9F27', 0),
+    ('Health',        '💊', '#E24B4A', 0),
+    ('Other',         '📦', '#888780', 0),
+    ('Income',        '💰', '#1D9E75', 1),
+]
 
 def get_db():
     if 'db' not in g:
@@ -57,11 +57,25 @@ def init_db():
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS categories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                icon TEXT DEFAULT '📦',
+                color TEXT DEFAULT '#888780',
+                is_income INTEGER DEFAULT 0
+            );
         ''')
         if not db.execute("SELECT 1 FROM settings WHERE key='currency'").fetchone():
             db.execute("INSERT INTO settings (key,value) VALUES ('currency','USD')")
         if not db.execute("SELECT 1 FROM settings WHERE key='theme'").fetchone():
             db.execute("INSERT INTO settings (key,value) VALUES ('theme','auto')")
+        # Seed default categories if table is empty
+        if not db.execute('SELECT 1 FROM categories LIMIT 1').fetchone():
+            db.executemany(
+                'INSERT OR IGNORE INTO categories (name,icon,color,is_income) VALUES (?,?,?,?)',
+                DEFAULT_CATEGORIES
+            )
+            db.commit()
         # Add goal_id column to transactions if missing (migration)
         try:
             db.execute('ALTER TABLE transactions ADD COLUMN goal_id INTEGER REFERENCES goals(id)')
@@ -175,6 +189,7 @@ def update_transaction(tid):
 def list_budgets():
     db = get_db()
     month = request.args.get('month', '2026-05')
+    cat_colors = {r['name']: r['color'] for r in db.execute('SELECT name, color FROM categories').fetchall()}
     budgets = db.execute('SELECT * FROM budgets WHERE month=?', (month,)).fetchall()
     result = []
     for b in budgets:
@@ -182,7 +197,7 @@ def list_budgets():
             'SELECT COALESCE(SUM(amount),0) FROM transactions WHERE category=? AND type="expense" AND strftime("%Y-%m",date)=?',
             (b['category'], month)
         ).fetchone()[0]
-        result.append({**dict(b), 'spent': spent, 'color': CAT_COLORS.get(b['category'],'#888780')})
+        result.append({**dict(b), 'spent': spent, 'color': cat_colors.get(b['category'], '#888780')})
     return jsonify(result)
 
 @app.post('/api/budgets')
@@ -269,11 +284,12 @@ def overview():
         flow.append({'month': mo, 'income': inc, 'expenses': exp, 'savings': inc - exp})
 
     # Category breakdown for current month
+    cat_colors = {r['name']: r['color'] for r in db.execute('SELECT name, color FROM categories').fetchall()}
     cats = db.execute(
         'SELECT category, SUM(amount) as total FROM transactions WHERE type="expense" AND strftime("%Y-%m",date)=? GROUP BY category',
         (month,)
     ).fetchall()
-    cat_data = [{'category': r['category'], 'total': r['total'], 'color': CAT_COLORS.get(r['category'],'#888780')} for r in cats]
+    cat_data = [{'category': r['category'], 'total': r['total'], 'color': cat_colors.get(r['category'], '#888780')} for r in cats]
 
     # Savings trend
     savings_trend = [{'month': f['month'], 'savings': f['savings']} for f in flow]
@@ -325,10 +341,57 @@ def save_settings():
     db.commit()
     return jsonify({'ok': True})
 
+@app.get('/api/categories')
+def list_categories():
+    rows = get_db().execute('SELECT * FROM categories ORDER BY is_income, name').fetchall()
+    return jsonify([dict(r) for r in rows])
+
+@app.post('/api/categories')
+def add_category():
+    d = request.json
+    db = get_db()
+    try:
+        cur = db.execute(
+            'INSERT INTO categories (name,icon,color,is_income) VALUES (?,?,?,?)',
+            (d['name'].strip(), d.get('icon','📦'), d.get('color','#888780'), int(d.get('is_income',0)))
+        )
+        db.commit()
+        return jsonify({'id': cur.lastrowid}), 201
+    except sqlite3.IntegrityError:
+        return jsonify({'error': 'Name already exists'}), 409
+
+@app.put('/api/categories/<int:cid>')
+def update_category(cid):
+    d = request.json
+    db = get_db()
+    old = db.execute('SELECT name FROM categories WHERE id=?', (cid,)).fetchone()
+    new_name = d['name'].strip()
+    try:
+        db.execute('UPDATE categories SET name=?,icon=?,color=? WHERE id=?',
+                   (new_name, d.get('icon','📦'), d.get('color','#888780'), cid))
+        if old and old['name'] != new_name:
+            db.execute('UPDATE transactions SET category=? WHERE category=?', (new_name, old['name']))
+        db.commit()
+        return jsonify({'ok': True})
+    except sqlite3.IntegrityError:
+        return jsonify({'error': 'Name already exists'}), 409
+
+@app.delete('/api/categories/<int:cid>')
+def delete_category(cid):
+    db = get_db()
+    db.execute('DELETE FROM categories WHERE id=?', (cid,))
+    db.commit()
+    return jsonify({'ok': True})
+
 @app.get('/api/meta')
 def meta():
-    goals = [dict(r) for r in get_db().execute('SELECT id, name, color, saved, target FROM goals ORDER BY name').fetchall()]
-    return jsonify({'categories': CATEGORIES, 'cat_colors': CAT_COLORS, 'cat_icons': CAT_ICONS, 'goals': goals})
+    db = get_db()
+    cats = db.execute('SELECT * FROM categories ORDER BY is_income, name').fetchall()
+    categories  = [r['name']  for r in cats]
+    cat_colors  = {r['name']: r['color'] for r in cats}
+    cat_icons   = {r['name']: r['icon']  for r in cats}
+    goals = [dict(r) for r in db.execute('SELECT id, name, color, saved, target FROM goals ORDER BY name').fetchall()]
+    return jsonify({'categories': categories, 'cat_colors': cat_colors, 'cat_icons': cat_icons, 'goals': goals})
 
 @app.get('/assets/<path:filename>')
 def assets(filename):

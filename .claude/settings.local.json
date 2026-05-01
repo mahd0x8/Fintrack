@@ -30,7 +30,13 @@
       "Bash(curl -s -X POST http://localhost:5000/api/transactions -H 'Content-Type: application/json' -d '{\"name\":\"Monthly savings\",\"amount\":200,\"type\":\"expense\",\"category\":\"Savings\",\"date\":\"2026-05-01\",\"note\":\"\",\"goal_id\":1}')",
       "Bash(curl -s 'http://localhost:5000/api/transactions?month=2026-05')",
       "Bash(curl -s -X POST http://localhost:5000/api/transactions -H 'Content-Type: application/json' -d '{\"name\":\"Wedding savings\",\"amount\":500,\"type\":\"expense\",\"category\":\"Savings\",\"date\":\"2026-05-01\",\"note\":\"\",\"goal_id\":10}')",
-      "Bash(curl -s -X DELETE http://localhost:5000/api/transactions/34)"
+      "Bash(curl -s -X DELETE http://localhost:5000/api/transactions/34)",
+      "Bash(curl -s http://localhost:5000/api/categories)",
+      "Bash(fuser 5000/tcp)",
+      "Bash(curl -s http://localhost:5000/api/meta)",
+      "Bash(curl -sv http://localhost:5000/api/overview?month=2026-05)",
+      "Bash(curl -sv \"http://localhost:5000/api/budgets?month=2026-05\")",
+      "Bash(curl -s \"http://localhost:5000/api/budgets?month=2026-05\")"
     ]
   }
 }
