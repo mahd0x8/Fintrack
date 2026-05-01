@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Finances</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg: #ffffff;
+  --bg2: #f5f5f7;
+  --bg3: #ebebed;
+  --text: #1a1a1a;
+  --text2: #6b6b6b;
+  --text3: #9b9b9b;
+  --border: #e0e0e0;
+  --border2: #d0d0d0;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --purple: #7F77DD;
+  --green: #1D9E75;
+  --red: #E24B4A;
+  --blue: #378ADD;
+  --orange: #EF9F27;
+}
+/* Auto: follow system */
+@media(prefers-color-scheme:dark){
+  html:not([data-theme="light"]):not([data-theme="dark"]){
+    --bg:#1a1a1a;--bg2:#242424;--bg3:#2e2e2e;
+    --text:#f0f0f0;--text2:#a0a0a0;--text3:#707070;
+    --border:#333;--border2:#444;
+  }
+}
+/* Manual dark */
+html[data-theme="dark"]{
+  --bg:#1a1a1a;--bg2:#242424;--bg3:#2e2e2e;
+  --text:#f0f0f0;--text2:#a0a0a0;--text3:#707070;
+  --border:#333;--border2:#444;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+a{color:inherit;text-decoration:none}
+input,select,textarea,button{font-family:inherit;outline:none}
+input,select,textarea{background:var(--bg2);border:0.5px solid var(--border);color:var(--text);border-radius:var(--radius-sm);padding:8px 12px;font-size:13px;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--purple)}
+button{cursor:pointer}
+
+.app{max-width:900px;margin:0 auto;padding:1.5rem 1rem}
+
+/* Header */
+.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem}
+.header-title{font-size:22px;font-weight:600}
+.header-sub{font-size:13px;color:var(--text2);margin-top:2px}
+.btn-primary{padding:8px 16px;border-radius:var(--radius-sm);border:none;background:var(--purple);color:#fff;font-size:13px;font-weight:500;transition:opacity .15s}
+.btn-primary:hover{opacity:.85}
+
+/* Nav */
+.nav{display:flex;gap:6px;margin-bottom:1.5rem;flex-wrap:wrap}
+.nav button{padding:7px 16px;border-radius:20px;border:0.5px solid var(--border2);background:transparent;color:var(--text2);font-size:13px;transition:all .15s}
+.nav button.active{background:var(--purple);color:#fff;border-color:var(--purple)}
+.nav button:hover:not(.active){background:var(--bg2)}
+
+/* Sections */
+.section{display:none}.section.active{display:block}
+
+/* Metrics */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:1.5rem}
+.metric{background:var(--bg2);border-radius:var(--radius);padding:1rem}
+.metric-label{font-size:12px;color:var(--text2);margin-bottom:6px}
+.metric-value{font-size:22px;font-weight:500}
+.metric-value.green{color:var(--green)}.metric-value.red{color:var(--red)}.metric-value.purple{color:var(--purple)}
+
+/* Cards */
+.card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem}
+.card-title{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:1rem;text-transform:uppercase;letter-spacing:.05em}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+@media(max-width:540px){.two-col{grid-template-columns:1fr}}
+
+/* Transactions */
+.tx-filters{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap}
+.tx-filters input{flex:1;min-width:160px}
+.tx-filters select{width:auto;min-width:110px}
+.tx-group-label{font-size:11px;color:var(--text3);padding:8px 0 4px;font-weight:600;letter-spacing:.05em}
+.tx-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--border)}
+.tx-row:last-child{border-bottom:none}
+.tx-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.tx-info{flex:1;min-width:0}
+.tx-name{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx-date{font-size:12px;color:var(--text2)}
+.tx-amount{font-size:14px;font-weight:500;white-space:nowrap}
+.tx-actions{display:flex;gap:6px;opacity:0;transition:opacity .15s}
+.tx-row:hover .tx-actions{opacity:1}
+.tx-actions button{background:none;border:none;font-size:14px;padding:2px 5px;border-radius:4px;color:var(--text2)}
+.tx-actions button:hover{background:var(--bg3);color:var(--text)}
+
+/* Budget */
+.budget-row{margin-bottom:16px}
+.budget-header{display:flex;justify-content:space-between;margin-bottom:6px;align-items:center}
+.budget-name{font-size:14px;color:var(--text)}
+.budget-nums{font-size:12px;color:var(--text2)}
+.progress-bg{background:var(--bg3);border-radius:4px;height:8px;overflow:hidden}
+.progress-fill{height:8px;border-radius:4px;transition:width .5s}
+.budget-actions{display:flex;gap:6px;opacity:0;transition:opacity .15s}
+.budget-row:hover .budget-actions{opacity:1}
+.budget-actions button{background:none;border:none;font-size:13px;padding:2px 5px;border-radius:4px;color:var(--text2);cursor:pointer}
+.budget-actions button:hover{background:var(--bg3)}
+
+/* Goals */
+.goal-card{border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:12px;background:var(--bg);position:relative}
+.goal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.goal-name{font-size:14px;font-weight:500}
+.goal-badge{font-size:11px;padding:3px 10px;border-radius:12px}
+.goal-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-top:6px}
+.goal-actions{display:flex;gap:6px;opacity:0;transition:opacity .15s}
+.goal-card:hover .goal-actions{opacity:1}
+.goal-actions button{background:none;border:none;font-size:13px;padding:2px 5px;border-radius:4px;color:var(--text2);cursor:pointer}
+.goal-actions button:hover{background:var(--bg3)}
+
+/* Settings */
+.settings-section{margin-bottom:1.5rem}
+.settings-group-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:0.5px solid var(--border)}
+.settings-row:last-child{border-bottom:none}
+.settings-row-label{font-size:14px;font-weight:500}
+.settings-row-desc{font-size:12px;color:var(--text2);margin-top:2px}
+.settings-row-control{flex-shrink:0;margin-left:1rem}
+.settings-row-control select{width:auto;min-width:160px}
+.currency-preview{display:inline-block;margin-top:10px;padding:8px 14px;background:var(--bg2);border-radius:var(--radius-sm);font-size:13px;color:var(--text2)}
+.currency-preview strong{color:var(--purple)}
+/* Theme switcher */
+.theme-btns{display:flex;background:var(--bg2);border-radius:var(--radius-sm);padding:3px;gap:2px}
+.theme-btn{padding:6px 14px;border:none;background:transparent;border-radius:6px;font-size:13px;color:var(--text2);transition:all .15s;white-space:nowrap}
+.theme-btn.active{background:var(--bg);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12);font-weight:500}
+/* Danger zone */
+.danger-card{background:var(--bg);border:0.5px solid #E24B4A44;border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem}
+.danger-title{font-size:12px;font-weight:600;color:#E24B4A;text-transform:uppercase;letter-spacing:.05em;margin-bottom:1rem}
+.btn-danger-outline{padding:8px 16px;border-radius:var(--radius-sm);border:0.5px solid var(--red);background:transparent;color:var(--red);font-size:13px;font-weight:500;transition:all .15s;white-space:nowrap}
+.btn-danger-outline:hover{background:var(--red);color:#fff}
+/* Confirm delete modal */
+.confirm-box{background:var(--bg2);border-radius:var(--radius-sm);padding:12px;margin:12px 0;font-size:13px;color:var(--text2);text-align:center}
+.confirm-box strong{color:var(--text);display:block;margin-bottom:4px}
+
+.add-btn{width:100%;padding:10px;border:0.5px dashed var(--border2);border-radius:var(--radius-sm);background:transparent;color:var(--text2);font-size:13px;margin-top:4px;transition:background .15s}
+.add-btn:hover{background:var(--bg2)}
+
+/* Month picker */
+.month-nav{display:flex;align-items:center;gap:8px;font-size:13px}
+.month-nav button{background:var(--bg2);border:0.5px solid var(--border);border-radius:6px;width:28px;height:28px;font-size:14px;color:var(--text2)}
+.month-nav button:hover{background:var(--bg3)}
+.month-label{font-size:14px;font-weight:500;min-width:90px;text-align:center}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:flex;align-items:center;justify-content:center;padding:1rem}
+.modal{background:var(--bg);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:1.25rem}
+.form-row{margin-bottom:12px}
+.form-label{font-size:12px;color:var(--text2);margin-bottom:4px;display:block;font-weight:500}
+.form-actions{display:flex;gap:8px;margin-top:1.25rem;justify-content:flex-end}
+.btn-secondary{padding:8px 16px;border-radius:var(--radius-sm);border:0.5px solid var(--border2);background:transparent;color:var(--text);font-size:13px}
+.btn-secondary:hover{background:var(--bg2)}
+.btn-danger{padding:8px 16px;border-radius:var(--radius-sm);border:none;background:var(--red);color:#fff;font-size:13px}
+
+/* Legend */
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;font-size:12px;color:var(--text2)}
+.legend span{display:flex;align-items:center;gap:4px}
+.legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+
+/* Toast */
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:#333;color:#fff;padding:10px 16px;border-radius:var(--radius-sm);font-size:13px;z-index:200;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* Spinner */
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--purple);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.empty{text-align:center;padding:2rem;color:var(--text3);font-size:13px}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div>
+      <div class="header-title">My Finances</div>
+      <div class="header-sub" id="header-month">May 2026</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div class="month-nav">
+        <button onclick="changeMonth(-1)">‹</button>
+        <span class="month-label" id="month-label">May 2026</span>
+        <button onclick="changeMonth(1)">›</button>
+      </div>
+      <button class="btn-primary" onclick="openModal('tx')">+ Add transaction</button>
+    </div>
+  </div>
+
+  <nav class="nav" role="tablist">
+    <button class="active" onclick="showTab(this,'overview')">Overview</button>
+    <button onclick="showTab(this,'transactions')">Transactions</button>
+    <button onclick="showTab(this,'budgets')">Budgets</button>
+    <button onclick="showTab(this,'goals')">Savings goals</button>
+    <button onclick="showTab(this,'settings')">⚙ Settings</button>
+  </nav>
+
+  <!-- OVERVIEW -->
+  <div id="overview" class="section active">
+    <div class="metrics" id="ov-metrics">
+      <div class="metric"><div class="metric-label">Total income</div><div class="metric-value green" id="ov-income">—</div></div>
+      <div class="metric"><div class="metric-label">Total expenses</div><div class="metric-value red" id="ov-expenses">—</div></div>
+      <div class="metric"><div class="metric-label">Net savings</div><div class="metric-value purple" id="ov-savings">—</div></div>
+      <div class="metric"><div class="metric-label">Savings rate</div><div class="metric-value" id="ov-rate">—</div></div>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Monthly cash flow</div>
+        <div style="position:relative;height:200px"><canvas id="cashChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Spending by category</div>
+        <div style="position:relative;height:160px"><canvas id="pieChart"></canvas></div>
+        <div class="legend" id="pie-legend"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Savings trend (6 months)</div>
+      <div style="position:relative;height:180px"><canvas id="lineChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- TRANSACTIONS -->
+  <div id="transactions" class="section">
+    <div class="tx-filters">
+      <input type="text" id="tx-search" placeholder="Search transactions..." oninput="debouncedLoadTx()">
+      <select id="tx-type" onchange="loadTransactions()">
+        <option value="">All types</option>
+        <option value="income">Income</option>
+        <option value="expense">Expense</option>
+      </select>
+      <select id="tx-cat" onchange="loadTransactions()">
+        <option value="">All categories</option>
+      </select>
+    </div>
+    <div class="card" style="padding:0.5rem 1.25rem" id="tx-list"><div class="spinner"></div></div>
+  </div>
+
+  <!-- BUDGETS -->
+  <div id="budgets" class="section">
+    <div class="metrics" style="grid-template-columns:repeat(3,1fr)" id="bud-metrics">
+      <div class="metric"><div class="metric-label">Total budgeted</div><div class="metric-value" id="bud-total">—</div></div>
+      <div class="metric"><div class="metric-label">Spent so far</div><div class="metric-value red" id="bud-spent">—</div></div>
+      <div class="metric"><div class="metric-label">Remaining</div><div class="metric-value green" id="bud-rem">—</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title" id="bud-card-title">Budget tracker</div>
+      <div id="bud-list"></div>
+    </div>
+    <button class="add-btn" onclick="openModal('budget')">+ Add budget category</button>
+  </div>
+
+  <!-- GOALS -->
+  <div id="goals" class="section">
+    <div class="metrics" style="grid-template-columns:repeat(2,1fr)">
+      <div class="metric"><div class="metric-label">Active goals</div><div class="metric-value purple" id="goal-count">—</div></div>
+      <div class="metric"><div class="metric-label">Total saved toward goals</div><div class="metric-value green" id="goal-total">—</div></div>
+    </div>
+    <div id="goal-list"></div>
+    <button class="add-btn" onclick="openModal('goal')">+ Add a savings goal</button>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="settings" class="section">
+    <div class="card">
+      <div class="settings-section">
+        <div class="settings-group-title">Display</div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-label">Currency</div>
+            <div class="settings-row-desc">All amounts will be shown in the selected currency</div>
+          </div>
+          <div class="settings-row-control">
+            <select id="currency-select" onchange="onCurrencyChange()"></select>
+          </div>
+        </div>
+        <div id="currency-preview" class="currency-preview" style="margin-top:12px"></div>
+        <div class="settings-row" style="margin-top:4px">
+          <div>
+            <div class="settings-row-label">Theme</div>
+            <div class="settings-row-desc">Choose app appearance</div>
+          </div>
+          <div class="settings-row-control">
+            <div class="theme-btns" id="theme-btns">
+              <button class="theme-btn" data-theme="light" onclick="onThemeChange('light')">☀ Light</button>
+              <button class="theme-btn" data-theme="dark"  onclick="onThemeChange('dark')">🌙 Dark</button>
+              <button class="theme-btn" data-theme="auto"  onclick="onThemeChange('auto')">Auto</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="settings-section">
+        <div class="settings-group-title">Data</div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-label">Export transactions</div>
+            <div class="settings-row-desc">Download all transactions as CSV</div>
+          </div>
+          <div class="settings-row-control">
+            <button class="btn-primary" onclick="exportCSV()" style="white-space:nowrap">Download CSV</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="danger-card">
+      <div class="danger-title">Danger zone</div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Clear transaction history</div>
+          <div class="settings-row-desc">Permanently delete all transactions</div>
+        </div>
+        <div class="settings-row-control">
+          <button class="btn-danger-outline" onclick="confirmClear('transactions')">Delete transactions</button>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Clear budgets</div>
+          <div class="settings-row-desc">Permanently delete all budget categories</div>
+        </div>
+        <div class="settings-row-control">
+          <button class="btn-danger-outline" onclick="confirmClear('budgets')">Delete budgets</button>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Clear savings goals</div>
+          <div class="settings-row-desc">Permanently delete all savings goals</div>
+        </div>
+        <div class="settings-row-control">
+          <button class="btn-danger-outline" onclick="confirmClear('goals')">Delete goals</button>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Reset all app data</div>
+          <div class="settings-row-desc">Wipe everything — transactions, budgets, goals, and settings</div>
+        </div>
+        <div class="settings-row-control">
+          <button class="btn-danger-outline" onclick="confirmClear('all')" style="border-width:1px;font-weight:600">Reset everything</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal-body"></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Currencies ────────────────────────────────────────────────────────────
+const CURRENCIES = [
+  { code:'USD', symbol:'$',   name:'US Dollar' },
+  { code:'PKR', symbol:'Rs',  name:'Pakistani Rupee' },
+  { code:'EUR', symbol:'€',   name:'Euro' },
+  { code:'GBP', symbol:'£',   name:'British Pound' },
+  { code:'AED', symbol:'AED', name:'UAE Dirham' },
+  { code:'SAR', symbol:'SAR', name:'Saudi Riyal' },
+  { code:'INR', symbol:'₹',   name:'Indian Rupee' },
+  { code:'JPY', symbol:'¥',   name:'Japanese Yen' },
+  { code:'CNY', symbol:'¥',   name:'Chinese Yuan' },
+  { code:'CAD', symbol:'CA$', name:'Canadian Dollar' },
+  { code:'AUD', symbol:'A$',  name:'Australian Dollar' },
+  { code:'TRY', symbol:'₺',   name:'Turkish Lira' },
+  { code:'BRL', symbol:'R$',  name:'Brazilian Real' },
+  { code:'EGP', symbol:'E£',  name:'Egyptian Pound' },
+  { code:'NGN', symbol:'₦',   name:'Nigerian Naira' },
+  { code:'KES', symbol:'KSh', name:'Kenyan Shilling' },
+  { code:'MYR', symbol:'RM',  name:'Malaysian Ringgit' },
+  { code:'SGD', symbol:'S$',  name:'Singapore Dollar' },
+  { code:'CHF', symbol:'Fr',  name:'Swiss Franc' },
+  { code:'SEK', symbol:'kr',  name:'Swedish Krona' },
+];
+
+// ── State ─────────────────────────────────────────────────────────────────
+let currentMonth = '2026-05';
+let editingId = null;
+let cashChart, pieChart, lineChart;
+let META = { categories: [], cat_colors: {}, cat_icons: {} };
+let debounceTimer;
+let currentCurrency = CURRENCIES[0]; // default USD
+let currentTheme = 'auto';
+
+// ── Currency helpers ──────────────────────────────────────────────────────
+function getCurrencyByCode(code){
+  return CURRENCIES.find(c=>c.code===code) || CURRENCIES[0];
+}
+
+function fmt(n){
+  const sym = currentCurrency.symbol;
+  const abs = Math.abs(n);
+  const formatted = abs.toLocaleString('en-US', {minimumFractionDigits: abs % 1 ? 2 : 0, maximumFractionDigits: 2});
+  return sym + formatted;
+}
+
+function fmtSigned(n){ return (n>=0?'+':'-') + fmt(n) }
+
+function fmtK(v){
+  const sym = currentCurrency.symbol;
+  if(Math.abs(v) >= 1000) return sym + (v/1000).toFixed(1) + 'k';
+  return sym + v.toFixed(0);
+}
+
+// ── Utils ─────────────────────────────────────────────────────────────────
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+function monthLabel(ym){
+  const [y,m] = ym.split('-');
+  return new Date(y, m-1).toLocaleString('default',{month:'long',year:'numeric'});
+}
+
+function changeMonth(d){
+  let [y,m] = currentMonth.split('-').map(Number);
+  m += d; if(m>12){m=1;y++} if(m<1){m=12;y--}
+  currentMonth = `${y}-${String(m).padStart(2,'0')}`;
+  document.getElementById('month-label').textContent = monthLabel(currentMonth);
+  document.getElementById('header-month').textContent = monthLabel(currentMonth);
+  refreshAll();
+}
+
+function debouncedLoadTx(){
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(loadTransactions, 250);
+}
+
+function iconBg(cat){
+  const map={Housing:'#EEEDFE',Food:'#E1F5EE',Transport:'#E6F1FB',Entertainment:'#FAEEDA',Health:'#FDEAEA',Income:'#E1F5EE',Other:'#F0F0F0'};
+  return map[cat]||'#F0F0F0';
+}
+
+function goalBadge(pct){
+  if(pct>=90) return ['Almost there','#E1F5EE','#0F6E56'];
+  if(pct>=50) return ['On track','#EEEDFE','#534AB7'];
+  return ['Just started','#FAEEDA','#854F0B'];
+}
+
+async function api(path, method='GET', body=null){
+  const opts = { method, headers:{'Content-Type':'application/json'} };
+  if(body) opts.body = JSON.stringify(body);
+  const r = await fetch(path, opts);
+  return r.json();
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────
+function showTab(btn, id){
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(id).classList.add('active');
+  if(id==='transactions') loadTransactions();
+  if(id==='budgets') loadBudgets();
+  if(id==='goals') loadGoals();
+  if(id==='settings') renderSettingsTab();
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────
+async function loadSettings(){
+  const s = await api('/api/settings');
+  currentCurrency = getCurrencyByCode(s.currency || 'USD');
+  currentTheme = s.theme || 'auto';
+  applyTheme(currentTheme);
+}
+
+async function saveSettingsToDB(){
+  await api('/api/settings','PUT',{ currency: currentCurrency.code, theme: currentTheme });
+}
+
+function applyTheme(theme){
+  const html = document.documentElement;
+  if(theme === 'auto') html.removeAttribute('data-theme');
+  else html.setAttribute('data-theme', theme);
+}
+
+function renderSettingsTab(){
+  const sel = document.getElementById('currency-select');
+  sel.innerHTML = CURRENCIES.map(c=>
+    `<option value="${c.code}" ${c.code===currentCurrency.code?'selected':''}>${c.code} — ${c.name} (${c.symbol})</option>`
+  ).join('');
+  updateCurrencyPreview();
+  // Highlight active theme button
+  document.querySelectorAll('.theme-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.theme === currentTheme);
+  });
+}
+
+function updateCurrencyPreview(){
+  const sel = document.getElementById('currency-select');
+  const c = getCurrencyByCode(sel.value);
+  document.getElementById('currency-preview').innerHTML =
+    `Preview: <strong>${c.symbol}1,234.56</strong> &nbsp;·&nbsp; ${c.name} (${c.code})`;
+}
+
+async function onCurrencyChange(){
+  const sel = document.getElementById('currency-select');
+  currentCurrency = getCurrencyByCode(sel.value);
+  updateCurrencyPreview();
+  await saveSettingsToDB();
+  showToast(`Currency changed to ${currentCurrency.code}`);
+  refreshAll();
+}
+
+async function onThemeChange(theme){
+  currentTheme = theme;
+  applyTheme(theme);
+  document.querySelectorAll('.theme-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.theme === theme);
+  });
+  await saveSettingsToDB();
+  showToast(`Theme set to ${theme}`);
+}
+
+// ── CSV Export ────────────────────────────────────────────────────────────
+async function exportCSV(){
+  const txs = await api('/api/transactions');
+  const sym = currentCurrency.symbol;
+  const header = 'Date,Name,Type,Category,Amount,Note\n';
+  const rows = txs.map(t=>
+    [t.date, `"${t.name}"`, t.type, t.category, (t.type==='expense'?'-':'')+t.amount, `"${t.note||''}"`].join(',')
+  ).join('\n');
+  const blob = new Blob([header+rows], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `transactions_${currentMonth}.csv`;
+  a.click();
+  showToast('CSV downloaded');
+}
+
+// ── Clear data ────────────────────────────────────────────────────────────
+const CLEAR_LABELS = {
+  transactions: { title: 'Delete all transactions', desc: 'This will permanently remove every transaction. Charts and budget spending will reset to zero.' },
+  budgets:      { title: 'Delete all budgets',      desc: 'All budget categories and limits will be removed.' },
+  goals:        { title: 'Delete all savings goals',desc: 'All goals and their progress will be permanently deleted.' },
+  all:          { title: 'Reset all app data',      desc: 'Everything will be wiped — transactions, budgets, goals, and settings. This cannot be undone.' },
+};
+
+function confirmClear(type){
+  const { title, desc } = CLEAR_LABELS[type];
+  const body = document.getElementById('modal-body');
+  body.innerHTML = `
+    <div class="modal-title" style="color:var(--red)">${title}</div>
+    <div class="confirm-box">
+      <strong>Are you absolutely sure?</strong>${desc}
+    </div>
+    <div class="form-row" style="margin-bottom:0">
+      <label class="form-label">Type <b>DELETE</b> to confirm</label>
+      <input id="confirm-input" placeholder="DELETE" oninput="document.getElementById('confirm-btn').disabled=this.value!=='DELETE'">
+    </div>
+    <div class="form-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button id="confirm-btn" class="btn-danger" disabled onclick="executeClear('${type}')">Delete permanently</button>
+    </div>`;
+  document.getElementById('modal').style.display = 'flex';
+}
+
+async function executeClear(type){
+  await api(`/api/clear/${type}`, 'DELETE');
+  closeModal();
+  const labels = { transactions:'Transactions deleted', budgets:'Budgets deleted', goals:'Goals deleted', all:'All data reset' };
+  showToast(labels[type]);
+  if(type === 'all'){
+    currentCurrency = CURRENCIES[0];
+    currentTheme = 'auto';
+    applyTheme('auto');
+  }
+  refreshAll();
+  renderSettingsTab();
+}
+
+// ── Overview ──────────────────────────────────────────────────────────────
+async function loadOverview(){
+  const d = await api(`/api/overview?month=${currentMonth}`);
+  document.getElementById('ov-income').textContent = fmt(d.income);
+  document.getElementById('ov-expenses').textContent = fmt(d.expenses);
+  document.getElementById('ov-savings').textContent = fmt(d.net_savings);
+  document.getElementById('ov-rate').textContent = d.savings_rate + '%';
+
+  const isDark = matchMedia('(prefers-color-scheme:dark)').matches;
+  const gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)';
+  const tickColor = isDark ? '#888' : '#aaa';
+
+  const cfLabels = d.cash_flow.map(f => {
+    const [,m] = f.month.split('-');
+    return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m)-1];
+  });
+  if(cashChart) cashChart.destroy();
+  cashChart = new Chart(document.getElementById('cashChart'),{
+    type:'bar',
+    data:{
+      labels: cfLabels,
+      datasets:[
+        {label:'Income', data:d.cash_flow.map(f=>f.income), backgroundColor:'#1D9E75', borderRadius:4, barPercentage:0.5},
+        {label:'Expenses', data:d.cash_flow.map(f=>f.expenses), backgroundColor:'#7F77DD', borderRadius:4, barPercentage:0.5}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:tickColor,font:{size:11}}}},
+      scales:{
+        x:{grid:{display:false},ticks:{color:tickColor,font:{size:11}}},
+        y:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:11},callback:v=>fmtK(v)}}
+      }
+    }
+  });
+
+  const cats = d.category_breakdown.filter(c=>c.total>0);
+  const totalExp = cats.reduce((s,c)=>s+c.total,0);
+  if(pieChart) pieChart.destroy();
+  pieChart = new Chart(document.getElementById('pieChart'),{
+    type:'doughnut',
+    data:{
+      labels: cats.map(c=>c.category),
+      datasets:[{data:cats.map(c=>c.total), backgroundColor:cats.map(c=>c.color), borderWidth:0, hoverOffset:4}]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false, cutout:'68%',
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>' '+ctx.label+': '+fmt(ctx.parsed)+' ('+Math.round(ctx.parsed/totalExp*100)+'%)'}}
+      }
+    }
+  });
+  const leg = document.getElementById('pie-legend');
+  leg.innerHTML = cats.map(c=>`<span><span class="legend-dot" style="background:${c.color}"></span>${c.category} ${Math.round(c.total/totalExp*100)}%</span>`).join('');
+
+  if(lineChart) lineChart.destroy();
+  lineChart = new Chart(document.getElementById('lineChart'),{
+    type:'line',
+    data:{
+      labels: d.savings_trend.map(f=>{const [,m]=f.month.split('-');return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m)-1]}),
+      datasets:[{
+        label:'Net savings', data:d.savings_trend.map(f=>f.savings),
+        borderColor:'#7F77DD', backgroundColor:'rgba(127,119,221,0.12)',
+        fill:true, tension:0.4, pointRadius:4, pointBackgroundColor:'#7F77DD', borderWidth:2
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{display:false},ticks:{color:tickColor,font:{size:11}}},
+        y:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:11},callback:v=>fmtK(v)}}
+      }
+    }
+  });
+}
+
+// ── Transactions ──────────────────────────────────────────────────────────
+async function loadTransactions(){
+  const q = document.getElementById('tx-search').value;
+  const type = document.getElementById('tx-type').value;
+  const cat = document.getElementById('tx-cat').value;
+  const params = new URLSearchParams({month:currentMonth});
+  if(q) params.set('q',q);
+  if(type) params.set('type',type);
+  if(cat) params.set('category',cat);
+
+  const txs = await api(`/api/transactions?${params}`);
+  const el = document.getElementById('tx-list');
+  if(!txs.length){ el.innerHTML='<div class="empty">No transactions found</div>'; return; }
+
+  const groups = {};
+  txs.forEach(tx => { const d=tx.date; if(!groups[d])groups[d]=[]; groups[d].push(tx); });
+
+  el.innerHTML = Object.entries(groups).map(([date,rows])=>`
+    <div class="tx-group-label">${fmtDate(date)}</div>
+    ${rows.map(tx=>`
+      <div class="tx-row" id="txrow-${tx.id}">
+        <div class="tx-icon" style="background:${iconBg(tx.category)}">${META.cat_icons[tx.category]||'📦'}</div>
+        <div class="tx-info">
+          <div class="tx-name">${esc(tx.name)}</div>
+          <div class="tx-date">${fmtDate(tx.date)} · ${tx.category}</div>
+        </div>
+        <div class="tx-amount ${tx.type==='income'?'green':'red'}">${tx.type==='income'?'+':'-'}${fmt(tx.amount)}</div>
+        <div class="tx-actions">
+          <button onclick="editTx(${tx.id})" title="Edit">✏️</button>
+          <button onclick="deleteTx(${tx.id})" title="Delete">🗑️</button>
+        </div>
+      </div>`).join('')}
+  `).join('');
+}
+
+function fmtDate(d){
+  const dt = new Date(d + 'T00:00:00');
+  return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+
+function esc(s){ const d=document.createElement('div');d.textContent=s;return d.innerHTML; }
+
+async function deleteTx(id){
+  if(!confirm('Delete this transaction?')) return;
+  await api(`/api/transactions/${id}`,'DELETE');
+  showToast('Transaction deleted');
+  refreshAll();
+}
+
+async function editTx(id){
+  const all = await api('/api/transactions');
+  const tx = all.find(t=>t.id===id);
+  if(!tx) return;
+  editingId = id;
+  openModal('tx', tx);
+}
+
+// ── Budgets ───────────────────────────────────────────────────────────────
+async function loadBudgets(){
+  const budgets = await api(`/api/budgets?month=${currentMonth}`);
+  document.getElementById('bud-card-title').textContent = `Budget tracker — ${monthLabel(currentMonth)}`;
+  const total = budgets.reduce((s,b)=>s+b.amount,0);
+  const spent = budgets.reduce((s,b)=>s+b.spent,0);
+  document.getElementById('bud-total').textContent = fmt(total);
+  document.getElementById('bud-spent').textContent = fmt(spent);
+  const rem = total - spent;
+  const remEl = document.getElementById('bud-rem');
+  remEl.textContent = fmt(rem);
+  remEl.className = 'metric-value ' + (rem>=0?'green':'red');
+
+  const el = document.getElementById('bud-list');
+  if(!budgets.length){ el.innerHTML='<div class="empty">No budgets for this month</div>'; return; }
+
+  el.innerHTML = budgets.map(b=>{
+    const pct = Math.min(100, Math.round(b.spent/b.amount*100));
+    const over = b.spent > b.amount;
+    const barColor = over ? '#E24B4A' : b.color;
+    return `
+    <div class="budget-row">
+      <div class="budget-header">
+        <span class="budget-name">${esc(b.category)}</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="budget-nums">${fmt(b.spent)} / ${fmt(b.amount)}</span>
+          <div class="budget-actions">
+            <button onclick="editBudget(${b.id},${JSON.stringify(b).replace(/"/g,'&quot;')})" title="Edit">✏️</button>
+            <button onclick="deleteBudget(${b.id})" title="Delete">🗑️</button>
+          </div>
+        </div>
+      </div>
+      <div class="progress-bg"><div class="progress-fill" style="width:${pct}%;background:${barColor}"></div></div>
+      ${over?`<div style="font-size:11px;color:#E24B4A;margin-top:4px">${esc(b.category)} is over budget by ${fmt(b.spent-b.amount)}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+async function deleteBudget(id){
+  if(!confirm('Remove this budget?')) return;
+  await api(`/api/budgets/${id}`,'DELETE');
+  showToast('Budget removed');
+  loadBudgets();
+}
+
+function editBudget(id, b){
+  editingId = id;
+  openModal('budget', b);
+}
+
+// ── Goals ─────────────────────────────────────────────────────────────────
+async function loadGoals(){
+  const goals = await api('/api/goals');
+  document.getElementById('goal-count').textContent = goals.length;
+  document.getElementById('goal-total').textContent = fmt(goals.reduce((s,g)=>s+g.saved,0));
+
+  const el = document.getElementById('goal-list');
+  if(!goals.length){ el.innerHTML='<div class="empty">No savings goals yet</div>'; return; }
+
+  el.innerHTML = goals.map(g=>{
+    const pct = Math.min(100, Math.round(g.saved/g.target*100));
+    const [label,bgc,tc] = goalBadge(pct);
+    return `
+    <div class="goal-card">
+      <div class="goal-header">
+        <span class="goal-name">${esc(g.name)}</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="goal-badge" style="background:${bgc};color:${tc}">${label}</span>
+          <div class="goal-actions">
+            <button onclick="editGoal(${g.id})" title="Edit">✏️</button>
+            <button onclick="deleteGoal(${g.id})" title="Delete">🗑️</button>
+          </div>
+        </div>
+      </div>
+      <div class="progress-bg" style="height:10px"><div class="progress-fill" style="width:${pct}%;background:${g.color};height:10px"></div></div>
+      <div class="goal-meta">
+        <span>${fmt(g.saved)} saved</span>
+        <span>Goal: ${fmt(g.target)}</span>
+      </div>
+      ${g.target_date?`<div style="font-size:12px;color:var(--text2);margin-top:6px">Target date: ${fmtDate(g.target_date)}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+async function deleteGoal(id){
+  if(!confirm('Delete this goal?')) return;
+  await api(`/api/goals/${id}`,'DELETE');
+  showToast('Goal deleted');
+  loadGoals();
+}
+
+async function editGoal(id){
+  const goals = await api('/api/goals');
+  const g = goals.find(g=>g.id===id);
+  if(!g) return;
+  editingId = id;
+  openModal('goal', g);
+}
+
+// ── Modals ────────────────────────────────────────────────────────────────
+function openModal(type, data=null){
+  editingId = data?.id || null;
+  const body = document.getElementById('modal-body');
+  if(type==='tx') body.innerHTML = txForm(data);
+  if(type==='budget') body.innerHTML = budgetForm(data);
+  if(type==='goal') body.innerHTML = goalForm(data);
+  document.getElementById('modal').style.display='flex';
+}
+
+function closeModal(){
+  document.getElementById('modal').style.display='none';
+  editingId = null;
+}
+
+function txForm(d=null){
+  const sym = currentCurrency.symbol;
+  const catOpts = META.categories.map(c=>`<option value="${c}" ${d?.category===c?'selected':''}>${c}</option>`).join('');
+  return `
+  <div class="modal-title">${d?'Edit':'Add'} Transaction</div>
+  <div class="form-row"><label class="form-label">Name</label><input id="f-name" value="${esc(d?.name||'')}" placeholder="e.g. Grocery store"></div>
+  <div class="form-row"><label class="form-label">Amount (${sym})</label><input id="f-amount" type="number" min="0.01" step="0.01" value="${d?.amount||''}"></div>
+  <div class="form-row"><label class="form-label">Type</label>
+    <select id="f-type">
+      <option value="expense" ${d?.type==='expense'?'selected':''}>Expense</option>
+      <option value="income" ${d?.type==='income'?'selected':''}>Income</option>
+    </select>
+  </div>
+  <div class="form-row"><label class="form-label">Category</label><select id="f-cat">${catOpts}</select></div>
+  <div class="form-row"><label class="form-label">Date</label><input id="f-date" type="date" value="${d?.date||currentMonth+'-01'}"></div>
+  <div class="form-row"><label class="form-label">Note (optional)</label><input id="f-note" value="${esc(d?.note||'')}"></div>
+  <div class="form-actions">
+    <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+    <button class="btn-primary" onclick="saveTx()">Save</button>
+  </div>`;
+}
+
+function budgetForm(d=null){
+  const sym = currentCurrency.symbol;
+  const catOpts = META.categories.filter(c=>c!=='Income').map(c=>`<option value="${c}" ${d?.category===c?'selected':''}>${c}</option>`).join('');
+  return `
+  <div class="modal-title">${d?'Edit':'Add'} Budget</div>
+  <div class="form-row"><label class="form-label">Category</label><select id="f-cat" ${d?'disabled':''}>${catOpts}</select></div>
+  <div class="form-row"><label class="form-label">Budget amount (${sym})</label><input id="f-amount" type="number" min="1" step="1" value="${d?.amount||''}"></div>
+  <div class="form-row"><label class="form-label">Month</label><input id="f-month" type="month" value="${d?.month||currentMonth}"></div>
+  <div class="form-actions">
+    <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+    <button class="btn-primary" onclick="saveBudget(${d?`'${d.category}'`:'null'})">Save</button>
+  </div>`;
+}
+
+function goalForm(d=null){
+  const sym = currentCurrency.symbol;
+  const colors = ['#7F77DD','#1D9E75','#378ADD','#EF9F27','#E24B4A','#888780'];
+  const colorPicker = colors.map(c=>`<span onclick="document.getElementById('f-color').value='${c}';this.parentNode.querySelectorAll('span').forEach(s=>s.style.outline='none');this.style.outline='2px solid ${c}'" style="width:20px;height:20px;border-radius:50%;background:${c};display:inline-block;cursor:pointer;outline:${d?.color===c?'2px solid '+c:'none'}"></span>`).join(' ');
+  return `
+  <div class="modal-title">${d?'Edit':'Add'} Savings Goal</div>
+  <div class="form-row"><label class="form-label">Goal name</label><input id="f-name" value="${esc(d?.name||'')}" placeholder="e.g. Emergency fund"></div>
+  <div class="form-row"><label class="form-label">Target amount (${sym})</label><input id="f-target" type="number" min="1" step="1" value="${d?.target||''}"></div>
+  <div class="form-row"><label class="form-label">Amount saved so far (${sym})</label><input id="f-saved" type="number" min="0" step="0.01" value="${d?.saved||0}"></div>
+  <div class="form-row"><label class="form-label">Target date (optional)</label><input id="f-date" type="date" value="${d?.target_date||''}"></div>
+  <div class="form-row"><label class="form-label">Color</label><div style="display:flex;gap:8px;align-items:center;margin-top:4px">${colorPicker}</div><input type="hidden" id="f-color" value="${d?.color||'#7F77DD'}"></div>
+  <div class="form-actions">
+    <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+    <button class="btn-primary" onclick="saveGoal()">Save</button>
+  </div>`;
+}
+
+async function saveTx(){
+  const name = document.getElementById('f-name').value.trim();
+  const amount = parseFloat(document.getElementById('f-amount').value);
+  const type = document.getElementById('f-type').value;
+  const category = document.getElementById('f-cat').value;
+  const date = document.getElementById('f-date').value;
+  const note = document.getElementById('f-note').value.trim();
+  if(!name || !amount || !date){ showToast('Please fill all required fields'); return; }
+  const body = {name,amount,type,category,date,note};
+  if(editingId){
+    await api(`/api/transactions/${editingId}`,'PUT',body);
+    showToast('Transaction updated');
+  } else {
+    await api('/api/transactions','POST',body);
+    showToast('Transaction added');
+  }
+  closeModal(); refreshAll();
+}
+
+async function saveBudget(existingCat){
+  const category = existingCat || document.getElementById('f-cat').value;
+  const amount = parseFloat(document.getElementById('f-amount').value);
+  const month = document.getElementById('f-month').value;
+  if(!amount || !month){ showToast('Please fill all required fields'); return; }
+  await api('/api/budgets','POST',{category,amount,month});
+  showToast(editingId ? 'Budget updated' : 'Budget added');
+  closeModal(); loadBudgets();
+}
+
+async function saveGoal(){
+  const name = document.getElementById('f-name').value.trim();
+  const target = parseFloat(document.getElementById('f-target').value);
+  const saved = parseFloat(document.getElementById('f-saved').value)||0;
+  const target_date = document.getElementById('f-date').value;
+  const color = document.getElementById('f-color').value;
+  if(!name || !target){ showToast('Please fill all required fields'); return; }
+  const body = {name,target,saved,target_date,color};
+  if(editingId){
+    await api(`/api/goals/${editingId}`,'PUT',body);
+    showToast('Goal updated');
+  } else {
+    await api('/api/goals','POST',body);
+    showToast('Goal added');
+  }
+  closeModal(); loadGoals();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+async function refreshAll(){
+  loadOverview();
+  const activeTab = document.querySelector('.section.active').id;
+  if(activeTab==='transactions') loadTransactions();
+  if(activeTab==='budgets') loadBudgets();
+  if(activeTab==='goals') loadGoals();
+  if(activeTab==='settings') renderSettingsTab();
+}
+
+async function init(){
+  [META] = await Promise.all([api('/api/meta')]);
+  await loadSettings();
+  const catSel = document.getElementById('tx-cat');
+  META.categories.forEach(c=>{
+    const o = document.createElement('option'); o.value=c; o.textContent=c; catSel.appendChild(o);
+  });
+  refreshAll();
+}
+
+init();
+</script>
+</body>
+</html>

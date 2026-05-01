@@ -1,0 +1,219 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.nav{display:flex;gap:6px;margin-bottom:1.5rem;flex-wrap:wrap}
+.nav button{padding:7px 16px;border-radius:20px;border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-secondary);font-size:13px;cursor:pointer;transition:all .15s}
+.nav button.active{background:#7F77DD;color:#fff;border-color:#7F77DD}
+.section{display:none}.section.active{display:block}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:1.5rem}
+.metric{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:1rem}
+.metric-label{font-size:12px;color:var(--color-text-secondary);margin-bottom:6px}
+.metric-value{font-size:22px;font-weight:500;color:var(--color-text-primary)}
+.metric-value.green{color:#1D9E75}.metric-value.red{color:#E24B4A}.metric-value.purple{color:#7F77DD}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.25rem;margin-bottom:1rem}
+.card-title{font-size:13px;font-weight:500;color:var(--color-text-secondary);margin-bottom:1rem;text-transform:uppercase;letter-spacing:.04em}
+.tx-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--color-border-tertiary)}
+.tx-row:last-child{border-bottom:none}
+.tx-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.tx-info{flex:1}.tx-name{font-size:14px;font-weight:500;color:var(--color-text-primary)}.tx-date{font-size:12px;color:var(--color-text-secondary)}
+.tx-amount{font-size:14px;font-weight:500}
+.budget-row{margin-bottom:14px}
+.budget-header{display:flex;justify-content:space-between;margin-bottom:6px}
+.budget-name{font-size:14px;color:var(--color-text-primary)}
+.budget-nums{font-size:12px;color:var(--color-text-secondary)}
+.progress-bg{background:var(--color-background-secondary);border-radius:4px;height:8px;overflow:hidden}
+.progress-fill{height:8px;border-radius:4px;transition:width .4s}
+.goal-card{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem;margin-bottom:12px;background:var(--color-background-primary)}
+.goal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.goal-name{font-size:14px;font-weight:500}
+.goal-badge{font-size:11px;padding:3px 10px;border-radius:12px;background:#EEEDFE;color:#534AB7}
+.goal-progress{margin-bottom:6px}
+.goal-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--color-text-secondary)}
+.add-btn{width:100%;padding:10px;border:0.5px dashed var(--color-border-secondary);border-radius:var(--border-radius-md);background:transparent;color:var(--color-text-secondary);font-size:13px;cursor:pointer;margin-top:8px}
+.add-btn:hover{background:var(--color-background-secondary)}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+@media(max-width:540px){.two-col{grid-template-columns:1fr}}
+</style>
+
+<h2 class="sr-only">Personal finance manager with income tracking, budgets, savings goals, and charts</h2>
+
+<div style="padding:1rem 0">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+    <div>
+      <div style="font-size:20px;font-weight:500;color:var(--color-text-primary)">My Finances</div>
+      <div style="font-size:13px;color:var(--color-text-secondary)">May 2026</div>
+    </div>
+    <button style="padding:8px 16px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:#7F77DD;color:#fff;font-size:13px;cursor:pointer" onclick="sendPrompt('Add a new transaction to my finance tracker')">+ Add transaction ↗</button>
+  </div>
+
+  <nav class="nav" role="tablist">
+    <button class="active" onclick="showTab(this,'overview')">Overview</button>
+    <button onclick="showTab(this,'transactions')">Transactions</button>
+    <button onclick="showTab(this,'budgets')">Budgets</button>
+    <button onclick="showTab(this,'goals')">Savings goals</button>
+  </nav>
+
+  <!-- OVERVIEW -->
+  <div id="overview" class="section active">
+    <div class="metrics">
+      <div class="metric"><div class="metric-label">Total income</div><div class="metric-value green">$4,850</div></div>
+      <div class="metric"><div class="metric-label">Total expenses</div><div class="metric-value red">$2,940</div></div>
+      <div class="metric"><div class="metric-label">Net savings</div><div class="metric-value purple">$1,910</div></div>
+      <div class="metric"><div class="metric-label">Savings rate</div><div class="metric-value">39%</div></div>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Monthly cash flow</div>
+        <div style="position:relative;height:200px"><canvas id="cashChart" role="img" aria-label="Bar chart of monthly cash flow Jan through May">Income and expenses across 5 months.</canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Spending by category</div>
+        <div style="position:relative;height:160px"><canvas id="pieChart" role="img" aria-label="Donut chart of spending by category">Housing, food, transport, entertainment, and other.</canvas></div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;font-size:12px;color:var(--color-text-secondary)">
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#7F77DD"></span>Housing 38%</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#1D9E75"></span>Food 22%</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#378ADD"></span>Transport 15%</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#EF9F27"></span>Entertainment 12%</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#888780"></span>Other 13%</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Savings trend (6 months)</div>
+      <div style="position:relative;height:180px"><canvas id="lineChart" role="img" aria-label="Line chart showing savings trend over 6 months">Savings from December through May.</canvas></div>
+    </div>
+  </div>
+
+  <!-- TRANSACTIONS -->
+  <div id="transactions" class="section">
+    <div style="display:flex;gap:8px;margin-bottom:1rem">
+      <input type="text" placeholder="Search transactions..." style="flex:1;font-size:13px" />
+      <select style="font-size:13px;padding:0 8px"><option>All</option><option>Income</option><option>Expense</option></select>
+    </div>
+    <div class="card" style="padding:0.5rem 1.25rem">
+      <div style="font-size:11px;color:var(--color-text-tertiary);padding:8px 0;font-weight:500">TODAY</div>
+      <div class="tx-row"><div class="tx-icon" style="background:#EEEDFE">🛒</div><div class="tx-info"><div class="tx-name">Grocery store</div><div class="tx-date">May 1 · Food</div></div><div class="tx-amount red">-$67</div></div>
+      <div class="tx-row"><div class="tx-icon" style="background:#E1F5EE">💰</div><div class="tx-info"><div class="tx-name">Salary deposit</div><div class="tx-date">May 1 · Income</div></div><div class="tx-amount green">+$2,425</div></div>
+      <div style="font-size:11px;color:var(--color-text-tertiary);padding:8px 0;font-weight:500;margin-top:4px">APRIL 30</div>
+      <div class="tx-row"><div class="tx-icon" style="background:#E6F1FB">🚗</div><div class="tx-info"><div class="tx-name">Uber ride</div><div class="tx-date">Apr 30 · Transport</div></div><div class="tx-amount red">-$14</div></div>
+      <div class="tx-row"><div class="tx-icon" style="background:#FAEEDA">🎬</div><div class="tx-info"><div class="tx-name">Netflix subscription</div><div class="tx-date">Apr 30 · Entertainment</div></div><div class="tx-amount red">-$18</div></div>
+      <div class="tx-row"><div class="tx-icon" style="background:#E1F5EE">🏠</div><div class="tx-info"><div class="tx-name">Rent</div><div class="tx-date">Apr 30 · Housing</div></div><div class="tx-amount red">-$1,100</div></div>
+      <div class="tx-row"><div class="tx-icon" style="background:#EEEDFE">💰</div><div class="tx-info"><div class="tx-name">Freelance payment</div><div class="tx-date">Apr 29 · Income</div></div><div class="tx-amount green">+$500</div></div>
+    </div>
+    <button class="add-btn" onclick="sendPrompt('Show me all my transactions for April 2026 ↗')">Load more transactions ↗</button>
+  </div>
+
+  <!-- BUDGETS -->
+  <div id="budgets" class="section">
+    <div class="metrics" style="grid-template-columns:repeat(3,1fr)">
+      <div class="metric"><div class="metric-label">Total budgeted</div><div class="metric-value">$3,200</div></div>
+      <div class="metric"><div class="metric-label">Spent so far</div><div class="metric-value red">$2,940</div></div>
+      <div class="metric"><div class="metric-label">Remaining</div><div class="metric-value green">$260</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Budget tracker — May 2026</div>
+      <div class="budget-row"><div class="budget-header"><span class="budget-name">Housing</span><span class="budget-nums">$1,100 / $1,200</span></div><div class="progress-bg"><div class="progress-fill" style="width:92%;background:#7F77DD"></div></div></div>
+      <div class="budget-row"><div class="budget-header"><span class="budget-name">Food & groceries</span><span class="budget-nums">$480 / $600</span></div><div class="progress-bg"><div class="progress-fill" style="width:80%;background:#1D9E75"></div></div></div>
+      <div class="budget-row"><div class="budget-header"><span class="budget-name">Transport</span><span class="budget-nums">$390 / $400</span></div><div class="progress-bg"><div class="progress-fill" style="width:97%;background:#EF9F27"></div></div></div>
+      <div class="budget-row"><div class="budget-header"><span class="budget-name">Entertainment</span><span class="budget-nums">$218 / $300</span></div><div class="progress-bg"><div class="progress-fill" style="width:73%;background:#378ADD"></div></div></div>
+      <div class="budget-row"><div class="budget-header"><span class="budget-name">Health</span><span class="budget-nums">$90 / $200</span></div><div class="progress-bg"><div class="progress-fill" style="width:45%;background:#1D9E75"></div></div></div>
+      <div class="budget-row" style="margin-bottom:0"><div class="budget-header"><span class="budget-name">Other</span><span class="budget-nums">$662 / $500</span></div><div class="progress-bg"><div class="progress-fill" style="width:100%;background:#E24B4A"></div></div></div>
+      <div style="font-size:11px;color:#E24B4A;margin-top:6px">Other is over budget by $162</div>
+    </div>
+    <button class="add-btn" onclick="sendPrompt('Help me adjust my monthly budgets for June 2026 ↗')">+ Add or edit a budget category ↗</button>
+  </div>
+
+  <!-- GOALS -->
+  <div id="goals" class="section">
+    <div class="metrics" style="grid-template-columns:repeat(2,1fr)">
+      <div class="metric"><div class="metric-label">Active goals</div><div class="metric-value purple">3</div></div>
+      <div class="metric"><div class="metric-label">Total saved toward goals</div><div class="metric-value green">$8,750</div></div>
+    </div>
+    <div class="goal-card">
+      <div class="goal-header"><span class="goal-name">Emergency fund</span><span class="goal-badge">On track</span></div>
+      <div class="goal-progress"><div class="progress-bg" style="height:10px"><div class="progress-fill" style="width:70%;background:#7F77DD;height:10px"></div></div></div>
+      <div class="goal-meta"><span>$7,000 saved</span><span>Goal: $10,000</span></div>
+      <div style="font-size:12px;color:var(--color-text-secondary);margin-top:6px">Est. completion: Nov 2026</div>
+    </div>
+    <div class="goal-card">
+      <div class="goal-header"><span class="goal-name">Vacation to Japan</span><span class="goal-badge" style="background:#E1F5EE;color:#0F6E56">Almost there</span></div>
+      <div class="goal-progress"><div class="progress-bg" style="height:10px"><div class="progress-fill" style="width:88%;background:#1D9E75;height:10px"></div></div></div>
+      <div class="goal-meta"><span>$1,500 saved</span><span>Goal: $1,700</span></div>
+      <div style="font-size:12px;color:var(--color-text-secondary);margin-top:6px">Est. completion: Jun 2026</div>
+    </div>
+    <div class="goal-card">
+      <div class="goal-header"><span class="goal-name">New laptop</span><span class="goal-badge" style="background:#FAEEDA;color:#854F0B">Just started</span></div>
+      <div class="goal-progress"><div class="progress-bg" style="height:10px"><div class="progress-fill" style="width:25%;background:#EF9F27;height:10px"></div></div></div>
+      <div class="goal-meta"><span>$250 saved</span><span>Goal: $1,000</span></div>
+      <div style="font-size:12px;color:var(--color-text-secondary);margin-top:6px">Est. completion: Feb 2027</div>
+    </div>
+    <button class="add-btn" onclick="sendPrompt('Help me create a new savings goal ↗')">+ Add a savings goal ↗</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+function showTab(btn, id) {
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+
+const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+const gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)';
+const tickColor = isDark ? '#888' : '#aaa';
+
+new Chart(document.getElementById('cashChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Jan','Feb','Mar','Apr','May'],
+    datasets: [
+      { label: 'Income', data: [4200,4500,4100,4800,4850], backgroundColor: '#1D9E75', borderRadius: 4, barPercentage: 0.5 },
+      { label: 'Expenses', data: [3100,2800,3300,3000,2940], backgroundColor: '#7F77DD', borderRadius: 4, barPercentage: 0.5 }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: tickColor, font: { size: 11 } } },
+      y: { grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 11 }, callback: v => '$' + (v/1000).toFixed(1) + 'k' } }
+    }
+  }
+});
+
+new Chart(document.getElementById('pieChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Housing','Food','Transport','Entertainment','Other'],
+    datasets: [{ data: [38,22,15,12,13], backgroundColor: ['#7F77DD','#1D9E75','#378ADD','#EF9F27','#888780'], borderWidth: 0, hoverOffset: 4 }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, cutout: '68%',
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' ' + ctx.label + ': ' + ctx.parsed + '%' } } }
+  }
+});
+
+new Chart(document.getElementById('lineChart'), {
+  type: 'line',
+  data: {
+    labels: ['Dec','Jan','Feb','Mar','Apr','May'],
+    datasets: [{
+      label: 'Savings',
+      data: [5200, 6100, 6900, 7400, 8100, 8750],
+      borderColor: '#7F77DD', backgroundColor: 'rgba(127,119,221,0.12)',
+      fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#7F77DD', borderWidth: 2
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: tickColor, font: { size: 11 } } },
+      y: { grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 11 }, callback: v => '$' + (v/1000).toFixed(1) + 'k' } }
+    }
+  }
+});
+</script>

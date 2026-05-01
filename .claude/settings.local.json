@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \"import flask\")",
+      "Bash(pip install *)",
+      "Bash(python3 *)",
+      "Bash(curl -s http://localhost:5000/api/overview?month=2026-05)",
+      "Bash(curl -s 'http://localhost:5000/api/transactions')",
+      "Bash(curl -s 'http://localhost:5000/api/budgets?month=2026-05')",
+      "Bash(curl -s 'http://localhost:5000/api/goals')",
+      "Bash(curl -s 'http://localhost:5000/api/overview?month=2026-05')",
+      "Bash(curl -s http://localhost:5000/)",
+      "Bash(curl -s -X POST http://localhost:5000/api/transactions -H 'Content-Type: application/json' -d '{\"name\":\"Coffee\",\"amount\":4.50,\"type\":\"expense\",\"category\":\"Food\",\"date\":\"2026-05-01\",\"note\":\"\"}')",
+      "Bash(curl -s -X POST http://localhost:5000/api/goals -H 'Content-Type: application/json' -d '{\"name\":\"Test goal\",\"target\":5000,\"saved\":1000,\"color\":\"#378ADD\",\"target_date\":\"2027-01-01\"}')",
+      "Bash(curl -s -X DELETE http://localhost:5000/api/transactions/16)",
+      "Bash(curl -s -X DELETE http://localhost:5000/api/goals/4)",
+      "Bash(pkill -f \"python3 app.py\")",
+      "Bash(curl -s http://localhost:5000/api/settings)",
+      "Bash(curl -s -X PUT http://localhost:5000/api/settings -H 'Content-Type: application/json' -d '{\"currency\":\"PKR\"}')",
+      "Bash(curl -s -X PUT http://localhost:5000/api/settings -H \"Content-Type: application/json\" -d '{\"currency\":\"USD\"}')",
+      "Bash(curl -s -X PUT http://localhost:5000/api/settings -H 'Content-Type: application/json' -d '{\"currency\":\"USD\",\"theme\":\"dark\"}')",
+      "Bash(curl -s -X PUT http://localhost:5000/api/settings -H 'Content-Type: application/json' -d '{\"currency\":\"USD\",\"theme\":\"auto\"}')",
+      "Bash(curl -s -X PUT http://localhost:5000/api/settings -H \"Content-Type: application/json\" -d '{\"currency\":\"USD\",\"theme\":\"dark\"}')",
+      "Bash(curl -s http://localhost:5000/api/goals)",
+      "Bash(curl -s -X DELETE http://localhost:5000/api/clear/goals)"
+    ]
+  }
+}
