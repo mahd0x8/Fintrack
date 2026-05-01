@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>My Finances</title>
+<link rel="icon" type="image/png" href="/assets/money-management.png">
+<link rel="apple-touch-icon" href="/assets/money-management.png">
+<meta name="theme-color" content="#7F77DD">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
 :root {
@@ -87,6 +90,7 @@ button{cursor:pointer}
 .tx-info{flex:1;min-width:0}
 .tx-name{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tx-date{font-size:12px;color:var(--text2)}
+.tx-goal-tag{display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:2px 7px;border-radius:10px;background:#EEEDFE;color:#534AB7;margin-top:3px;width:fit-content}
 .tx-amount{font-size:14px;font-weight:500;white-space:nowrap}
 .tx-actions{display:flex;gap:6px;opacity:0;transition:opacity .15s}
 .tx-row:hover .tx-actions{opacity:1}
@@ -684,10 +688,11 @@ async function loadTransactions(){
     <div class="tx-group-label">${fmtDate(date)}</div>
     ${rows.map(tx=>`
       <div class="tx-row" id="txrow-${tx.id}">
-        <div class="tx-icon" style="background:${iconBg(tx.category)}">${META.cat_icons[tx.category]||'📦'}</div>
+        <div class="tx-icon" style="background:${tx.goal_id?'#EEEDFE':iconBg(tx.category)}">${tx.goal_id?'🎯':META.cat_icons[tx.category]||'📦'}</div>
         <div class="tx-info">
           <div class="tx-name">${esc(tx.name)}</div>
           <div class="tx-date">${fmtDate(tx.date)} · ${tx.category}</div>
+          ${tx.goal_name?`<div class="tx-goal-tag">⟶ Added to ${esc(tx.goal_name)}</div>`:''}
         </div>
         <div class="tx-amount ${tx.type==='income'?'green':'red'}">${tx.type==='income'?'+':'-'}${fmt(tx.amount)}</div>
         <div class="tx-actions">
@@ -820,8 +825,10 @@ async function editGoal(id){
 }
 
 // ── Modals ────────────────────────────────────────────────────────────────
-function openModal(type, data=null){
+async function openModal(type, data=null){
   editingId = data?.id || null;
+  // Refresh goals list so newly added goals appear in the tx form
+  if(type === 'tx') META.goals = (await api('/api/meta')).goals;
   const body = document.getElementById('modal-body');
   if(type==='tx') body.innerHTML = txForm(data);
   if(type==='budget') body.innerHTML = budgetForm(data);
@@ -837,18 +844,26 @@ function closeModal(){
 function txForm(d=null){
   const sym = currentCurrency.symbol;
   const catOpts = META.categories.map(c=>`<option value="${c}" ${d?.category===c?'selected':''}>${c}</option>`).join('');
+  const goals = META.goals || [];
+  const goalOpts = `<option value="">None — regular transaction</option>` +
+    goals.map(g=>`<option value="${g.id}" ${d?.goal_id==g.id?'selected':''}>${g.name} (${fmt(g.saved)} / ${fmt(g.target)})</option>`).join('');
   return `
   <div class="modal-title">${d?'Edit':'Add'} Transaction</div>
   <div class="form-row"><label class="form-label">Name</label><input id="f-name" value="${esc(d?.name||'')}" placeholder="e.g. Grocery store"></div>
   <div class="form-row"><label class="form-label">Amount (${sym})</label><input id="f-amount" type="number" min="0.01" step="0.01" value="${d?.amount||''}"></div>
   <div class="form-row"><label class="form-label">Type</label>
-    <select id="f-type">
+    <select id="f-type" onchange="onTxTypeChange()">
       <option value="expense" ${d?.type==='expense'?'selected':''}>Expense</option>
       <option value="income" ${d?.type==='income'?'selected':''}>Income</option>
     </select>
   </div>
   <div class="form-row"><label class="form-label">Category</label><select id="f-cat">${catOpts}</select></div>
   <div class="form-row"><label class="form-label">Date</label><input id="f-date" type="date" value="${d?.date||currentMonth+'-01'}"></div>
+  <div class="form-row" id="goal-row">
+    <label class="form-label">Add to savings goal <span style="color:var(--text3);font-weight:400">(optional)</span></label>
+    <select id="f-goal" onchange="onGoalSelect()">${goalOpts}</select>
+  </div>
+  <div id="goal-hint" style="display:none;font-size:12px;color:var(--purple);margin:-6px 0 10px;padding:7px 10px;background:#EEEDFE;border-radius:6px"></div>
   <div class="form-row"><label class="form-label">Note (optional)</label><input id="f-note" value="${esc(d?.note||'')}"></div>
   <div class="form-actions">
     <button class="btn-secondary" onclick="closeModal()">Cancel</button>
@@ -887,6 +902,33 @@ function goalForm(d=null){
   </div>`;
 }
 
+function onTxTypeChange(){
+  const type = document.getElementById('f-type').value;
+  const goalRow = document.getElementById('goal-row');
+  if(type === 'income'){
+    goalRow.style.display = 'none';
+    document.getElementById('f-goal').value = '';
+    document.getElementById('goal-hint').style.display = 'none';
+  } else {
+    goalRow.style.display = 'block';
+  }
+}
+
+function onGoalSelect(){
+  const sel = document.getElementById('f-goal');
+  const hint = document.getElementById('goal-hint');
+  if(sel.value){
+    const g = (META.goals||[]).find(g=>g.id==sel.value);
+    hint.style.display = 'block';
+    hint.textContent = `⟶ ${fmt(parseFloat(document.getElementById('f-amount').value)||0)} will be added to "${g?.name}"`;
+    document.getElementById('f-amount').oninput = () => {
+      hint.textContent = `⟶ ${fmt(parseFloat(document.getElementById('f-amount').value)||0)} will be added to "${g?.name}"`;
+    };
+  } else {
+    hint.style.display = 'none';
+  }
+}
+
 async function saveTx(){
   const name = document.getElementById('f-name').value.trim();
   const amount = parseFloat(document.getElementById('f-amount').value);
@@ -894,14 +936,15 @@ async function saveTx(){
   const category = document.getElementById('f-cat').value;
   const date = document.getElementById('f-date').value;
   const note = document.getElementById('f-note').value.trim();
+  const goal_id = parseInt(document.getElementById('f-goal')?.value) || null;
   if(!name || !amount || !date){ showToast('Please fill all required fields'); return; }
-  const body = {name,amount,type,category,date,note};
+  const body = {name, amount, type, category, date, note, goal_id};
   if(editingId){
     await api(`/api/transactions/${editingId}`,'PUT',body);
     showToast('Transaction updated');
   } else {
     await api('/api/transactions','POST',body);
-    showToast('Transaction added');
+    showToast(goal_id ? `Saved to goal & recorded as expense` : 'Transaction added');
   }
   closeModal(); refreshAll();
 }

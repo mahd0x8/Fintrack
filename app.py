@@ -1,5 +1,5 @@
 import sqlite3, os
-from flask import Flask, request, jsonify, render_template, g
+from flask import Flask, request, jsonify, render_template, g, send_from_directory
 
 app = Flask(__name__)
 DB = os.path.join(os.path.dirname(__file__), 'finance.db')
@@ -62,7 +62,12 @@ def init_db():
             db.execute("INSERT INTO settings (key,value) VALUES ('currency','USD')")
         if not db.execute("SELECT 1 FROM settings WHERE key='theme'").fetchone():
             db.execute("INSERT INTO settings (key,value) VALUES ('theme','auto')")
-        db.commit()
+        # Add goal_id column to transactions if missing (migration)
+        try:
+            db.execute('ALTER TABLE transactions ADD COLUMN goal_id INTEGER REFERENCES goals(id)')
+            db.commit()
+        except Exception:
+            pass
         # Seed sample data if empty
         if not db.execute('SELECT 1 FROM transactions LIMIT 1').fetchone():
             db.executescript('''
@@ -105,17 +110,19 @@ def list_transactions():
     typ = request.args.get('type','')
     cat = request.args.get('category','')
     month = request.args.get('month','')
-    sql = 'SELECT * FROM transactions WHERE 1=1'
+    sql = '''SELECT t.*, g.name as goal_name
+             FROM transactions t LEFT JOIN goals g ON t.goal_id = g.id
+             WHERE 1=1'''
     params = []
     if q:
-        sql += ' AND name LIKE ?'; params.append(f'%{q}%')
+        sql += ' AND t.name LIKE ?'; params.append(f'%{q}%')
     if typ in ('income','expense'):
-        sql += ' AND type=?'; params.append(typ)
+        sql += ' AND t.type=?'; params.append(typ)
     if cat:
-        sql += ' AND category=?'; params.append(cat)
+        sql += ' AND t.category=?'; params.append(cat)
     if month:
-        sql += ' AND strftime("%Y-%m",date)=?'; params.append(month)
-    sql += ' ORDER BY date DESC, id DESC'
+        sql += ' AND strftime("%Y-%m",t.date)=?'; params.append(month)
+    sql += ' ORDER BY t.date DESC, t.id DESC'
     rows = db.execute(sql, params).fetchall()
     return jsonify([dict(r) for r in rows])
 
@@ -123,16 +130,22 @@ def list_transactions():
 def add_transaction():
     d = request.json
     db = get_db()
+    goal_id = d.get('goal_id') or None
     cur = db.execute(
-        'INSERT INTO transactions (name,amount,type,category,date,note) VALUES (?,?,?,?,?,?)',
-        (d['name'], float(d['amount']), d['type'], d['category'], d['date'], d.get('note',''))
+        'INSERT INTO transactions (name,amount,type,category,date,note,goal_id) VALUES (?,?,?,?,?,?,?)',
+        (d['name'], float(d['amount']), d['type'], d['category'], d['date'], d.get('note',''), goal_id)
     )
+    if goal_id:
+        db.execute('UPDATE goals SET saved = saved + ? WHERE id = ?', (float(d['amount']), goal_id))
     db.commit()
     return jsonify({'id': cur.lastrowid}), 201
 
 @app.delete('/api/transactions/<int:tid>')
 def delete_transaction(tid):
     db = get_db()
+    tx = db.execute('SELECT * FROM transactions WHERE id=?', (tid,)).fetchone()
+    if tx and tx['goal_id']:
+        db.execute('UPDATE goals SET saved = MAX(0, saved - ?) WHERE id = ?', (tx['amount'], tx['goal_id']))
     db.execute('DELETE FROM transactions WHERE id=?', (tid,))
     db.commit()
     return jsonify({'ok': True})
@@ -141,9 +154,17 @@ def delete_transaction(tid):
 def update_transaction(tid):
     d = request.json
     db = get_db()
+    old = db.execute('SELECT * FROM transactions WHERE id=?', (tid,)).fetchone()
+    new_goal_id = d.get('goal_id') or None
+    # Reverse old goal contribution
+    if old and old['goal_id']:
+        db.execute('UPDATE goals SET saved = MAX(0, saved - ?) WHERE id = ?', (old['amount'], old['goal_id']))
+    # Apply new goal contribution
+    if new_goal_id:
+        db.execute('UPDATE goals SET saved = saved + ? WHERE id = ?', (float(d['amount']), new_goal_id))
     db.execute(
-        'UPDATE transactions SET name=?,amount=?,type=?,category=?,date=?,note=? WHERE id=?',
-        (d['name'], float(d['amount']), d['type'], d['category'], d['date'], d.get('note',''), tid)
+        'UPDATE transactions SET name=?,amount=?,type=?,category=?,date=?,note=?,goal_id=? WHERE id=?',
+        (d['name'], float(d['amount']), d['type'], d['category'], d['date'], d.get('note',''), new_goal_id, tid)
     )
     db.commit()
     return jsonify({'ok': True})
@@ -301,7 +322,12 @@ def save_settings():
 
 @app.get('/api/meta')
 def meta():
-    return jsonify({'categories': CATEGORIES, 'cat_colors': CAT_COLORS, 'cat_icons': CAT_ICONS})
+    goals = [dict(r) for r in get_db().execute('SELECT id, name, color, saved, target FROM goals ORDER BY name').fetchall()]
+    return jsonify({'categories': CATEGORIES, 'cat_colors': CAT_COLORS, 'cat_icons': CAT_ICONS, 'goals': goals})
+
+@app.get('/assets/<path:filename>')
+def assets(filename):
+    return send_from_directory(os.path.join(os.path.dirname(__file__), 'assets'), filename)
 
 @app.get('/')
 def index():
