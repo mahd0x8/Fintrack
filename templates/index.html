@@ -210,8 +210,8 @@ button{cursor:pointer}
     <div class="metrics" id="ov-metrics">
       <div class="metric"><div class="metric-label">Total income</div><div class="metric-value green" id="ov-income">—</div></div>
       <div class="metric"><div class="metric-label">Total expenses</div><div class="metric-value red" id="ov-expenses">—</div></div>
-      <div class="metric"><div class="metric-label">Net savings</div><div class="metric-value purple" id="ov-savings">—</div></div>
-      <div class="metric"><div class="metric-label">Savings rate</div><div class="metric-value" id="ov-rate">—</div></div>
+      <div class="metric"><div class="metric-label">After full budget</div><div class="metric-value" id="ov-after-budget">—</div></div>
+      <div class="metric"><div class="metric-label">Net savings</div><div class="metric-value purple" id="ov-goal-savings">—</div></div>
     </div>
     <div class="two-col">
       <div class="card">
@@ -409,7 +409,7 @@ function fmt(n){
   const sym = currentCurrency.symbol;
   const abs = Math.abs(n);
   const formatted = abs.toLocaleString('en-US', {minimumFractionDigits: abs % 1 ? 2 : 0, maximumFractionDigits: 2});
-  return sym + formatted;
+  return sym + ' ' + formatted;
 }
 
 function fmtSigned(n){ return (n>=0?'+':'-') + fmt(n) }
@@ -592,10 +592,12 @@ async function executeClear(type){
 // ── Overview ──────────────────────────────────────────────────────────────
 async function loadOverview(){
   const d = await api(`/api/overview?month=${currentMonth}`);
-  document.getElementById('ov-income').textContent = fmt(d.income);
+  document.getElementById('ov-goal-savings').textContent = fmt(d.total_goal_savings);
   document.getElementById('ov-expenses').textContent = fmt(d.expenses);
-  document.getElementById('ov-savings').textContent = fmt(d.net_savings);
-  document.getElementById('ov-rate').textContent = d.savings_rate + '%';
+  document.getElementById('ov-income').textContent = fmt(d.left_in_hand);
+  const afb = document.getElementById('ov-after-budget');
+  afb.textContent = fmt(d.after_full_budget);
+  afb.className = 'metric-value ' + (d.after_full_budget >= 0 ? 'green' : 'red');
 
   const isDark = matchMedia('(prefers-color-scheme:dark)').matches;
   const gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)';
