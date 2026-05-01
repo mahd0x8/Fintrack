@@ -1,0 +1,13 @@
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - finance_data:/data
+    environment:
+      - DB_PATH=/data/finance.db
+    restart: unless-stopped
+
+volumes:
+  finance_data:

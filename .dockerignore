@@ -1,0 +1,8 @@
+__pycache__
+*.pyc
+*.pyo
+finance.db
+.env
+.git
+.gitignore
+personal_finance_manager.html

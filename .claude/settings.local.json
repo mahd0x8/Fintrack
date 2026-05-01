@@ -36,7 +36,10 @@
       "Bash(curl -s http://localhost:5000/api/meta)",
       "Bash(curl -sv http://localhost:5000/api/overview?month=2026-05)",
       "Bash(curl -sv \"http://localhost:5000/api/budgets?month=2026-05\")",
-      "Bash(curl -s \"http://localhost:5000/api/budgets?month=2026-05\")"
+      "Bash(curl -s \"http://localhost:5000/api/budgets?month=2026-05\")",
+      "Bash(pip show *)",
+      "Bash(docker build *)",
+      "Bash(apt list *)"
     ]
   }
 }

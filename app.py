@@ -2,7 +2,7 @@ import sqlite3, os
 from flask import Flask, request, jsonify, render_template, g, send_from_directory
 
 app = Flask(__name__)
-DB = os.path.join(os.path.dirname(__file__), 'finance.db')
+DB = os.environ.get('DB_PATH', os.path.join(os.path.dirname(__file__), 'finance.db'))
 
 DEFAULT_CATEGORIES = [
     ('Housing',       '🏠', '#7F77DD', 0),
