@@ -39,7 +39,10 @@
       "Bash(curl -s \"http://localhost:5000/api/budgets?month=2026-05\")",
       "Bash(pip show *)",
       "Bash(docker build *)",
-      "Bash(apt list *)"
+      "Bash(apt list *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ]
   }
 }
