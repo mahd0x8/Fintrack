@@ -42,7 +42,18 @@
       "Bash(apt list *)",
       "Bash(git add *)",
       "Bash(git commit *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(az provider *)",
+      "Bash(az containerapp env create *)",
+      "Bash(az containerapp create *)",
+      "Bash(az containerapp *)",
+      "Bash(curl *)",
+      "Bash(sudo docker *)",
+      "Bash(gh api *)",
+      "Bash(mkdir -p /home/mahd/.docker/cli-plugins)",
+      "Bash(chmod +x /home/mahd/.docker/cli-plugins/docker-buildx)",
+      "Bash(docker buildx *)",
+      "Bash(az group show *)"
     ]
   }
 }

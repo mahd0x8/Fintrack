@@ -1,13 +1,23 @@
 #!/bin/bash
-# Run this once to create all Azure resources.
-# Fill in the variables below before running.
+set -e   # stop on any error
 
-GITHUB_USERNAME="mahd0x8"   # e.g. mahd
+GITHUB_USERNAME="mahd0x8"
 RG="finance-rg"
 LOCATION="eastus"
-STORAGE="financestorage$RANDOM"          # must be globally unique
+STORAGE="financestore$(date +%s | tail -c6)"   # unique suffix
 APP="my-finance-app"
 ENV="finance-env"
+
+# GITHUB_PAT must be set in the environment before running:
+#   export GITHUB_PAT=ghp_...
+if [ -z "$GITHUB_PAT" ]; then
+  echo "ERROR: set GITHUB_PAT before running (export GITHUB_PAT=ghp_...)"
+  exit 1
+fi
+
+echo "==> Registering required providers..."
+az provider register -n Microsoft.App --wait
+az provider register -n Microsoft.OperationalInsights --wait
 
 echo "==> Creating resource group..."
 az group create --name $RG --location $LOCATION
@@ -36,7 +46,25 @@ STORAGE_KEY=$(az storage account keys list \
   --resource-group $RG \
   --query "[0].value" -o tsv)
 
-echo "==> Deploying Container App (first deploy)..."
+echo "==> Registering Azure Files storage with the environment..."
+az containerapp env storage set \
+  --name $ENV \
+  --resource-group $RG \
+  --storage-name financedata \
+  --azure-file-account-name $STORAGE \
+  --azure-file-account-key "$STORAGE_KEY" \
+  --azure-file-share-name financedata \
+  --access-mode ReadWrite
+
+echo "==> Building & pushing Docker image..."
+docker buildx create --use --name financebuilder 2>/dev/null || true
+docker buildx build \
+  --platform linux/amd64 \
+  --push \
+  -t ghcr.io/$GITHUB_USERNAME/finance-app:latest \
+  .
+
+echo "==> Deploying Container App with volume mount..."
 az containerapp create \
   --name $APP \
   --resource-group $RG \
@@ -49,21 +77,14 @@ az containerapp create \
   --ingress external \
   --min-replicas 0 \
   --max-replicas 1 \
-  --env-vars DB_PATH=/data/finance.db
-
-echo "==> Mounting Azure Files volume for SQLite..."
-az containerapp update \
-  --name $APP \
-  --resource-group $RG \
-  --storage-name financestorage \
-  --storage-account-name $STORAGE \
-  --storage-account-key $STORAGE_KEY \
-  --storage-share-name financedata \
-  --storage-mount-path /data \
-  --storage-access-mode ReadWrite
+  --env-vars DB_PATH=/data/finance.db \
+  --volume-name financedata \
+  --volume-storage-name financedata \
+  --volume-storage-type AzureFile \
+  --volume-mount-path /data
 
 echo ""
-echo "==> Creating Azure service principal for GitHub Actions..."
+echo "==> Creating service principal for GitHub Actions CI/CD..."
 az ad sp create-for-rbac \
   --name "finance-app-deploy" \
   --role contributor \
@@ -71,6 +92,10 @@ az ad sp create-for-rbac \
   --sdk-auth
 
 echo ""
-echo "==> Done! Copy the JSON above into GitHub secret: AZURE_CREDENTIALS"
-echo "==> App name for GitHub secret APP_NAME: $APP"
-echo "==> Resource group for GitHub secret RESOURCE_GROUP: $RG"
+URL=$(az containerapp show --name $APP --resource-group $RG \
+  --query properties.configuration.ingress.fqdn -o tsv)
+echo "==> Done!"
+echo "==> App URL: https://$URL"
+echo "==> Copy the JSON above into GitHub secret: AZURE_CREDENTIALS"
+echo "==> APP_NAME secret value: $APP"
+echo "==> RESOURCE_GROUP secret value: $RG"

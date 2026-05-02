@@ -13,4 +13,4 @@ ENV DB_PATH=/data/finance.db
 EXPOSE 5000
 
 # Use gunicorn for production; initialise DB on first start
-CMD ["sh", "-c", "python -c 'from app import app, init_db; init_db()' && gunicorn --bind 0.0.0.0:5000 --workers 2 app:app"]
+CMD ["sh", "-c", "python -c 'from app import app, init_db; init_db()' && gunicorn --bind 0.0.0.0:5000 --workers 1 --timeout 120 app:app"]

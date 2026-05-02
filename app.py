@@ -16,9 +16,13 @@ DEFAULT_CATEGORIES = [
 
 def get_db():
     if 'db' not in g:
-        g.db = sqlite3.connect(DB)
+        # nolock=1 is required for SQLite on Azure Files (SMB) which doesn't
+        # support POSIX file locking
+        uri = f'file:{DB}?nolock=1'
+        g.db = sqlite3.connect(uri, uri=True, check_same_thread=False)
         g.db.row_factory = sqlite3.Row
         g.db.execute('PRAGMA foreign_keys = ON')
+        g.db.execute('PRAGMA journal_mode = OFF')
     return g.db
 
 @app.teardown_appcontext

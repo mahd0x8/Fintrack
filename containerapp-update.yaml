@@ -1,0 +1,21 @@
+properties:
+  template:
+    containers:
+      - name: my-finance-app
+        image: ghcr.io/mahd0x8/finance-app:latest
+        resources:
+          cpu: 0.5
+          memory: 1Gi
+        env:
+          - name: DB_PATH
+            value: /data/finance.db
+        volumeMounts:
+          - volumeName: financedata
+            mountPath: /data
+    volumes:
+      - name: financedata
+        storageType: AzureFile
+        storageName: financedata
+    scale:
+      minReplicas: 0
+      maxReplicas: 1
