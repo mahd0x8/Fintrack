@@ -55,7 +55,10 @@
       "Bash(docker buildx *)",
       "Bash(az group show *)",
       "Bash(sudo mkdir *)",
-      "Bash(sudo cp *)"
+      "Bash(sudo cp *)",
+      "Bash(python *)",
+      "Bash(pkill -f \"python.*app.py\")",
+      "Bash(kill -9 49838 50147)"
     ]
   }
 }
