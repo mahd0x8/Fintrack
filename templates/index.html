@@ -192,10 +192,98 @@ button{cursor:pointer}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 .empty{text-align:center;padding:2rem;color:var(--text3);font-size:13px}
+
+/* ── Auth screens ── */
+.auth-overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:500;padding:1rem}
+.auth-box{width:100%;max-width:340px;text-align:center}
+.auth-logo{font-size:52px;margin-bottom:1rem}
+.auth-title{font-size:22px;font-weight:600;margin-bottom:4px}
+.auth-subtitle{font-size:14px;color:var(--text2);margin-bottom:2rem}
+.pin-dots{display:flex;gap:16px;justify-content:center;margin-bottom:1.5rem}
+.pin-dot{width:14px;height:14px;border-radius:50%;background:var(--border2);transition:background .15s}
+.pin-dot.filled{background:var(--purple)}
+.pin-dot.error{background:var(--red)}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto}
+.numpad-btn{background:var(--bg2);border:none;border-radius:var(--radius);height:62px;font-size:22px;font-weight:500;color:var(--text);transition:background .1s}
+.numpad-btn:hover{background:var(--bg3)}
+.numpad-btn:active{background:var(--border2)}
+.numpad-btn.empty-key{background:transparent;pointer-events:none}
+.auth-error{color:var(--red);font-size:13px;min-height:18px;margin-bottom:10px}
+.auth-form{text-align:left}
+.auth-form .afield{margin-bottom:12px}
+.auth-form .afield label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px}
+.auth-link{background:none;border:none;color:var(--purple);font-size:13px;cursor:pointer;margin-top:1.25rem;display:block;text-align:center;width:100%}
+.auth-link:hover{text-decoration:underline}
 </style>
 </head>
 <body>
-<div class="app">
+
+<!-- AUTH OVERLAY -->
+<div id="authOverlay" class="auth-overlay" style="display:none">
+
+  <!-- PIN screen -->
+  <div id="pinScreen" class="auth-box">
+    <div class="auth-logo">💰</div>
+    <div class="auth-title" id="pinWelcome">Welcome back</div>
+    <div class="auth-subtitle">Enter your PIN to continue</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="dot0"></div>
+      <div class="pin-dot" id="dot1"></div>
+      <div class="pin-dot" id="dot2"></div>
+      <div class="pin-dot" id="dot3"></div>
+    </div>
+    <div class="auth-error" id="pinError"></div>
+    <div class="numpad">
+      <button class="numpad-btn" onclick="pinKey('1')">1</button>
+      <button class="numpad-btn" onclick="pinKey('2')">2</button>
+      <button class="numpad-btn" onclick="pinKey('3')">3</button>
+      <button class="numpad-btn" onclick="pinKey('4')">4</button>
+      <button class="numpad-btn" onclick="pinKey('5')">5</button>
+      <button class="numpad-btn" onclick="pinKey('6')">6</button>
+      <button class="numpad-btn" onclick="pinKey('7')">7</button>
+      <button class="numpad-btn" onclick="pinKey('8')">8</button>
+      <button class="numpad-btn" onclick="pinKey('9')">9</button>
+      <button class="numpad-btn empty-key"></button>
+      <button class="numpad-btn" onclick="pinKey('0')">0</button>
+      <button class="numpad-btn" onclick="pinDel()" style="font-size:18px">⌫</button>
+    </div>
+    <button class="auth-link" onclick="showAuthScreen('loginScreen')">Forgot PIN? Sign in with password</button>
+  </div>
+
+  <!-- Register screen -->
+  <div id="registerScreen" class="auth-box" style="display:none">
+    <div class="auth-logo">💰</div>
+    <div class="auth-title">Create account</div>
+    <div class="auth-subtitle">Set up your personal finance app</div>
+    <div class="auth-error" id="registerError"></div>
+    <div class="auth-form">
+      <div class="afield"><label>Full name</label><input id="reg-name" placeholder="Your name" autocomplete="name"></div>
+      <div class="afield"><label>Username</label><input id="reg-username" placeholder="username" autocomplete="username"></div>
+      <div class="afield"><label>Password</label><input id="reg-password" type="password" placeholder="••••••••" autocomplete="new-password"></div>
+      <div class="afield"><label>Confirm password</label><input id="reg-password2" type="password" placeholder="••••••••" autocomplete="new-password"></div>
+      <div class="afield"><label>PIN (4 digits)</label><input id="reg-pin" type="password" inputmode="numeric" maxlength="4" placeholder="••••"></div>
+      <div class="afield"><label>Confirm PIN</label><input id="reg-pin2" type="password" inputmode="numeric" maxlength="4" placeholder="••••"></div>
+      <button class="btn-primary" style="width:100%;margin-top:8px;padding:11px" onclick="doRegister()">Create Account</button>
+    </div>
+  </div>
+
+  <!-- Login screen (forgot PIN) -->
+  <div id="loginScreen" class="auth-box" style="display:none">
+    <div class="auth-logo">💰</div>
+    <div class="auth-title">Sign in</div>
+    <div class="auth-subtitle">Use your username and password</div>
+    <div class="auth-error" id="loginError"></div>
+    <div class="auth-form">
+      <div class="afield"><label>Username</label><input id="login-username" placeholder="username" autocomplete="username"></div>
+      <div class="afield"><label>Password</label><input id="login-password" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+      <button class="btn-primary" style="width:100%;margin-top:8px;padding:11px" onclick="doLogin()">Sign In</button>
+    </div>
+    <button class="auth-link" onclick="showAuthScreen('pinScreen')">← Back to PIN</button>
+  </div>
+
+</div>
+
+<div class="app" id="mainApp" style="display:none">
   <div class="header">
     <div>
       <div class="header-title">My Finances</div>
@@ -377,6 +465,22 @@ button{cursor:pointer}
         </div>
       </div>
     </div>
+
+    <div class="card">
+      <div class="settings-section">
+        <div class="settings-group-title">Account</div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-label" id="account-name-label">Account</div>
+            <div class="settings-row-desc">Sign out and return to PIN screen</div>
+          </div>
+          <div class="settings-row-control">
+            <button class="btn-danger-outline" onclick="doLogout()">Sign out</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -1086,6 +1190,126 @@ async function saveGoal(){
   closeModal(); loadGoals();
 }
 
+// ── Auth ──────────────────────────────────────────────────────────────────
+let pinEntry = '';
+
+function showAuthScreen(id){
+  ['pinScreen','registerScreen','loginScreen'].forEach(s=>{
+    document.getElementById(s).style.display = s===id ? '' : 'none';
+  });
+  if(id==='pinScreen'){ pinEntry=''; updatePinDots(); }
+}
+
+function updatePinDots(){
+  for(let i=0;i<4;i++)
+    document.getElementById('dot'+i).classList.toggle('filled', i < pinEntry.length);
+}
+
+function pinKey(k){
+  if(pinEntry.length>=4) return;
+  pinEntry += k;
+  updatePinDots();
+  if(pinEntry.length===4) submitPin();
+}
+
+function pinDel(){
+  pinEntry = pinEntry.slice(0,-1);
+  updatePinDots();
+  document.getElementById('pinError').textContent='';
+  document.querySelectorAll('.pin-dot').forEach(d=>d.classList.remove('error'));
+}
+
+async function submitPin(){
+  const res = await fetch('/api/auth/pin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pin:pinEntry})});
+  if(res.ok){
+    document.getElementById('authOverlay').style.display='none';
+    document.getElementById('mainApp').style.display='';
+    const data = await res.json();
+    document.getElementById('account-name-label').textContent = data.name || 'Account';
+    initApp();
+  } else {
+    document.getElementById('pinError').textContent='Wrong PIN, try again';
+    document.querySelectorAll('.pin-dot').forEach(d=>d.classList.add('error'));
+    setTimeout(()=>{
+      pinEntry=''; updatePinDots();
+      document.getElementById('pinError').textContent='';
+      document.querySelectorAll('.pin-dot').forEach(d=>d.classList.remove('error'));
+    }, 700);
+  }
+}
+
+async function doRegister(){
+  const name=document.getElementById('reg-name').value.trim();
+  const username=document.getElementById('reg-username').value.trim();
+  const password=document.getElementById('reg-password').value;
+  const password2=document.getElementById('reg-password2').value;
+  const pin=document.getElementById('reg-pin').value;
+  const pin2=document.getElementById('reg-pin2').value;
+  const err=document.getElementById('registerError');
+  if(!name||!username||!password||!pin){err.textContent='All fields are required';return;}
+  if(password!==password2){err.textContent='Passwords do not match';return;}
+  if(!/^\d{4}$/.test(pin)){err.textContent='PIN must be exactly 4 digits';return;}
+  if(pin!==pin2){err.textContent='PINs do not match';return;}
+  const res=await fetch('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,username,password,pin})});
+  const data=await res.json();
+  if(res.ok){
+    document.getElementById('authOverlay').style.display='none';
+    document.getElementById('mainApp').style.display='';
+    document.getElementById('account-name-label').textContent = data.name || 'Account';
+    initApp();
+  } else {
+    err.textContent = data.error || 'Registration failed';
+  }
+}
+
+async function doLogin(){
+  const username=document.getElementById('login-username').value.trim();
+  const password=document.getElementById('login-password').value;
+  const err=document.getElementById('loginError');
+  const res=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+  const data=await res.json();
+  if(res.ok){
+    document.getElementById('authOverlay').style.display='none';
+    document.getElementById('mainApp').style.display='';
+    document.getElementById('account-name-label').textContent = data.name || 'Account';
+    initApp();
+  } else {
+    err.textContent = data.error || 'Sign in failed';
+  }
+}
+
+async function doLogout(){
+  await fetch('/api/auth/logout',{method:'POST'});
+  document.getElementById('mainApp').style.display='none';
+  document.getElementById('authOverlay').style.display='flex';
+  showAuthScreen('pinScreen');
+}
+
+async function checkAuth(){
+  const res = await fetch('/api/auth/status');
+  const data = await res.json();
+  if(data.authenticated){
+    document.getElementById('mainApp').style.display='';
+    document.getElementById('account-name-label').textContent = data.name || 'Account';
+    initApp();
+  } else if(data.registered){
+    document.getElementById('pinWelcome').textContent = `Welcome back, ${data.name}`;
+    document.getElementById('authOverlay').style.display='flex';
+    showAuthScreen('pinScreen');
+  } else {
+    document.getElementById('authOverlay').style.display='flex';
+    showAuthScreen('registerScreen');
+  }
+}
+
+// keyboard support for PIN
+document.addEventListener('keydown', e=>{
+  if(document.getElementById('pinScreen').style.display==='none') return;
+  if(document.getElementById('authOverlay').style.display==='none') return;
+  if(e.key>='0'&&e.key<='9') pinKey(e.key);
+  if(e.key==='Backspace') pinDel();
+});
+
 // ── Init ──────────────────────────────────────────────────────────────────
 async function refreshAll(){
   loadOverview();
@@ -1096,17 +1320,18 @@ async function refreshAll(){
   if(activeTab==='settings') renderSettingsTab();
 }
 
-async function init(){
+async function initApp(){
   [META] = await Promise.all([api('/api/meta')]);
   await loadSettings();
   const catSel = document.getElementById('tx-cat');
+  catSel.innerHTML = '<option value="">All categories</option>';
   META.categories.forEach(c=>{
     const o = document.createElement('option'); o.value=c; o.textContent=c; catSel.appendChild(o);
   });
   refreshAll();
 }
 
-init();
+checkAuth();
 </script>
 </body>
 </html>
