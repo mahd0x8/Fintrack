@@ -2,7 +2,7 @@ name: Build & Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
 
 env:
   IMAGE: ghcr.io/${{ github.repository_owner }}/finance-app
@@ -42,4 +42,5 @@ jobs:
           az containerapp update \
             --name ${{ secrets.APP_NAME }} \
             --resource-group ${{ secrets.RESOURCE_GROUP }} \
-            --image ${{ env.IMAGE }}:latest
+            --image ${{ env.IMAGE }}:latest \
+            --revision-suffix "v${{ github.run_number }}"
