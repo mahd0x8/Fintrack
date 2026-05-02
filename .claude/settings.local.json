@@ -53,7 +53,9 @@
       "Bash(mkdir -p /home/mahd/.docker/cli-plugins)",
       "Bash(chmod +x /home/mahd/.docker/cli-plugins/docker-buildx)",
       "Bash(docker buildx *)",
-      "Bash(az group show *)"
+      "Bash(az group show *)",
+      "Bash(sudo mkdir *)",
+      "Bash(sudo cp *)"
     ]
   }
 }

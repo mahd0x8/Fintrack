@@ -57,8 +57,8 @@ az containerapp env storage set \
   --access-mode ReadWrite
 
 echo "==> Building & pushing Docker image..."
-docker buildx create --use --name financebuilder 2>/dev/null || true
-docker buildx build \
+sudo docker buildx create --use --name financebuilder 2>/dev/null || true
+sudo docker buildx build \
   --platform linux/amd64 \
   --push \
   -t ghcr.io/$GITHUB_USERNAME/finance-app:latest \
