@@ -2,7 +2,7 @@
 
 A full-stack personal finance web application built with Flask and SQLite. Track income, expenses, budgets, and savings goals — accessible from any device, secured with a PIN lock, and deployed to Azure with automated CI/CD.
 
-**Live app:** https://my-finance-app.delightfulmoss-fefadfb6.eastus.azurecontainerapps.io
+**Live app:** Privately hosted on Azure Container Apps
 
 ---
 
