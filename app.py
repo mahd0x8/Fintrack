@@ -1,7 +1,10 @@
 import sqlite3, os
-from flask import Flask, request, jsonify, render_template, g, send_from_directory
+from functools import wraps
+from flask import Flask, request, jsonify, render_template, g, send_from_directory, session
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'finance-secret-key-change-in-prod')
 DB = os.environ.get('DB_PATH', os.path.join(os.path.dirname(__file__), 'finance.db'))
 
 DEFAULT_CATEGORIES = [
@@ -16,8 +19,6 @@ DEFAULT_CATEGORIES = [
 
 def get_db():
     if 'db' not in g:
-        # nolock=1 is required for SQLite on Azure Files (SMB) which doesn't
-        # support POSIX file locking
         uri = f'file:{DB}?nolock=1'
         g.db = sqlite3.connect(uri, uri=True, check_same_thread=False)
         g.db.row_factory = sqlite3.Row
@@ -30,10 +31,26 @@ def close_db(e=None):
     db = g.pop('db', None)
     if db: db.close()
 
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get('authenticated'):
+            return jsonify({'error': 'unauthorized'}), 401
+        return f(*args, **kwargs)
+    return decorated
+
 def init_db():
     with app.app_context():
         db = get_db()
         db.executescript('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL UNIQUE,
+                name TEXT NOT NULL,
+                password_hash TEXT NOT NULL,
+                pin_hash TEXT NOT NULL,
+                created_at TEXT DEFAULT (datetime('now'))
+            );
             CREATE TABLE IF NOT EXISTS transactions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
@@ -73,55 +90,91 @@ def init_db():
             db.execute("INSERT INTO settings (key,value) VALUES ('currency','USD')")
         if not db.execute("SELECT 1 FROM settings WHERE key='theme'").fetchone():
             db.execute("INSERT INTO settings (key,value) VALUES ('theme','auto')")
-        # Seed default categories if table is empty
         if not db.execute('SELECT 1 FROM categories LIMIT 1').fetchone():
             db.executemany(
                 'INSERT OR IGNORE INTO categories (name,icon,color,is_income) VALUES (?,?,?,?)',
                 DEFAULT_CATEGORIES
             )
             db.commit()
-        # Add goal_id column to transactions if missing (migration)
         try:
             db.execute('ALTER TABLE transactions ADD COLUMN goal_id INTEGER REFERENCES goals(id)')
             db.commit()
         except Exception:
             pass
-        # Seed sample data if empty
-        if not db.execute('SELECT 1 FROM transactions LIMIT 1').fetchone():
-            db.executescript('''
-                INSERT INTO transactions (name,amount,type,category,date) VALUES
-                  ('Salary deposit',2425,'income','Income','2026-05-01'),
-                  ('Grocery store',67,'expense','Food','2026-05-01'),
-                  ('Uber ride',14,'expense','Transport','2026-04-30'),
-                  ('Netflix subscription',18,'expense','Entertainment','2026-04-30'),
-                  ('Rent',1100,'expense','Housing','2026-04-30'),
-                  ('Freelance payment',500,'income','Income','2026-04-29'),
-                  ('Gym membership',45,'expense','Health','2026-04-28'),
-                  ('Restaurant dinner',52,'expense','Food','2026-04-27'),
-                  ('Salary deposit',2425,'income','Income','2026-04-15'),
-                  ('Electric bill',85,'expense','Housing','2026-04-10'),
-                  ('Amazon purchase',120,'expense','Other','2026-04-08'),
-                  ('Coffee shop',22,'expense','Food','2026-04-05'),
-                  ('Bus pass',40,'expense','Transport','2026-04-02'),
-                  ('Salary deposit',2425,'income','Income','2026-03-15'),
-                  ('Rent',1100,'expense','Housing','2026-03-01');
-                INSERT INTO budgets (category,amount,month) VALUES
-                  ('Housing',1200,'2026-05'),
-                  ('Food',600,'2026-05'),
-                  ('Transport',400,'2026-05'),
-                  ('Entertainment',300,'2026-05'),
-                  ('Health',200,'2026-05'),
-                  ('Other',500,'2026-05');
-                INSERT INTO goals (name,target,saved,color,target_date) VALUES
-                  ('Emergency fund',10000,7000,'#7F77DD','2026-11-01'),
-                  ('Vacation to Japan',1700,1500,'#1D9E75','2026-06-01'),
-                  ('New laptop',1000,250,'#EF9F27','2027-02-01');
-            ''')
         db.commit()
 
-# ── TRANSACTIONS ────────────────────────────────────────────────────────────
+# ── AUTH ─────────────────────────────────────────────────────────────────────
+
+@app.get('/api/auth/status')
+def auth_status():
+    db = get_db()
+    user = db.execute('SELECT id, username, name FROM users LIMIT 1').fetchone()
+    return jsonify({
+        'registered': user is not None,
+        'authenticated': bool(session.get('authenticated')),
+        'name': user['name'] if user else None
+    })
+
+@app.post('/api/auth/register')
+def auth_register():
+    d = request.json
+    db = get_db()
+    if db.execute('SELECT 1 FROM users LIMIT 1').fetchone():
+        return jsonify({'error': 'Account already exists'}), 400
+    name = (d.get('name') or '').strip()
+    username = (d.get('username') or '').strip().lower()
+    password = d.get('password') or ''
+    pin = str(d.get('pin') or '')
+    if not name or not username or not password or not pin:
+        return jsonify({'error': 'All fields are required'}), 400
+    if len(pin) != 4 or not pin.isdigit():
+        return jsonify({'error': 'PIN must be exactly 4 digits'}), 400
+    try:
+        db.execute(
+            'INSERT INTO users (username, name, password_hash, pin_hash) VALUES (?,?,?,?)',
+            (username, name, generate_password_hash(password), generate_password_hash(pin))
+        )
+        db.commit()
+        session['authenticated'] = True
+        session['username'] = username
+        return jsonify({'ok': True, 'name': name})
+    except sqlite3.IntegrityError:
+        return jsonify({'error': 'Username already taken'}), 409
+
+@app.post('/api/auth/pin')
+def auth_pin():
+    d = request.json
+    db = get_db()
+    user = db.execute('SELECT * FROM users LIMIT 1').fetchone()
+    if not user:
+        return jsonify({'error': 'No account registered'}), 400
+    if check_password_hash(user['pin_hash'], str(d.get('pin', ''))):
+        session['authenticated'] = True
+        session['username'] = user['username']
+        return jsonify({'ok': True, 'name': user['name']})
+    return jsonify({'error': 'Wrong PIN'}), 401
+
+@app.post('/api/auth/login')
+def auth_login():
+    d = request.json
+    db = get_db()
+    username = (d.get('username') or '').strip().lower()
+    user = db.execute('SELECT * FROM users WHERE username=?', (username,)).fetchone()
+    if user and check_password_hash(user['password_hash'], d.get('password', '')):
+        session['authenticated'] = True
+        session['username'] = user['username']
+        return jsonify({'ok': True, 'name': user['name']})
+    return jsonify({'error': 'Wrong username or password'}), 401
+
+@app.post('/api/auth/logout')
+def auth_logout():
+    session.clear()
+    return jsonify({'ok': True})
+
+# ── TRANSACTIONS ──────────────────────────────────────────────────────────────
 
 @app.get('/api/transactions')
+@login_required
 def list_transactions():
     db = get_db()
     q = request.args.get('q','').strip()
@@ -145,6 +198,7 @@ def list_transactions():
     return jsonify([dict(r) for r in rows])
 
 @app.post('/api/transactions')
+@login_required
 def add_transaction():
     d = request.json
     db = get_db()
@@ -159,6 +213,7 @@ def add_transaction():
     return jsonify({'id': cur.lastrowid}), 201
 
 @app.delete('/api/transactions/<int:tid>')
+@login_required
 def delete_transaction(tid):
     db = get_db()
     tx = db.execute('SELECT * FROM transactions WHERE id=?', (tid,)).fetchone()
@@ -169,15 +224,14 @@ def delete_transaction(tid):
     return jsonify({'ok': True})
 
 @app.put('/api/transactions/<int:tid>')
+@login_required
 def update_transaction(tid):
     d = request.json
     db = get_db()
     old = db.execute('SELECT * FROM transactions WHERE id=?', (tid,)).fetchone()
     new_goal_id = d.get('goal_id') or None
-    # Reverse old goal contribution
     if old and old['goal_id']:
         db.execute('UPDATE goals SET saved = MAX(0, saved - ?) WHERE id = ?', (old['amount'], old['goal_id']))
-    # Apply new goal contribution
     if new_goal_id:
         db.execute('UPDATE goals SET saved = saved + ? WHERE id = ?', (float(d['amount']), new_goal_id))
     db.execute(
@@ -187,9 +241,10 @@ def update_transaction(tid):
     db.commit()
     return jsonify({'ok': True})
 
-# ── BUDGETS ─────────────────────────────────────────────────────────────────
+# ── BUDGETS ───────────────────────────────────────────────────────────────────
 
 @app.get('/api/budgets')
+@login_required
 def list_budgets():
     db = get_db()
     month = request.args.get('month', '2026-05')
@@ -205,6 +260,7 @@ def list_budgets():
     return jsonify(result)
 
 @app.post('/api/budgets')
+@login_required
 def save_budget():
     d = request.json
     db = get_db()
@@ -216,20 +272,23 @@ def save_budget():
     return jsonify({'ok': True})
 
 @app.delete('/api/budgets/<int:bid>')
+@login_required
 def delete_budget(bid):
     db = get_db()
     db.execute('DELETE FROM budgets WHERE id=?', (bid,))
     db.commit()
     return jsonify({'ok': True})
 
-# ── GOALS ───────────────────────────────────────────────────────────────────
+# ── GOALS ─────────────────────────────────────────────────────────────────────
 
 @app.get('/api/goals')
+@login_required
 def list_goals():
     rows = get_db().execute('SELECT * FROM goals ORDER BY id').fetchall()
     return jsonify([dict(r) for r in rows])
 
 @app.post('/api/goals')
+@login_required
 def add_goal():
     d = request.json
     db = get_db()
@@ -241,6 +300,7 @@ def add_goal():
     return jsonify({'id': cur.lastrowid}), 201
 
 @app.put('/api/goals/<int:gid>')
+@login_required
 def update_goal(gid):
     d = request.json
     db = get_db()
@@ -252,27 +312,26 @@ def update_goal(gid):
     return jsonify({'ok': True})
 
 @app.delete('/api/goals/<int:gid>')
+@login_required
 def delete_goal(gid):
     db = get_db()
     db.execute('DELETE FROM goals WHERE id=?', (gid,))
     db.commit()
     return jsonify({'ok': True})
 
-# ── OVERVIEW ────────────────────────────────────────────────────────────────
+# ── OVERVIEW ──────────────────────────────────────────────────────────────────
 
 @app.get('/api/overview')
+@login_required
 def overview():
     db = get_db()
     month = request.args.get('month', '2026-05')
-
     income = db.execute(
         'SELECT COALESCE(SUM(amount),0) FROM transactions WHERE type="income" AND strftime("%Y-%m",date)=?', (month,)
     ).fetchone()[0]
     expenses = db.execute(
         'SELECT COALESCE(SUM(amount),0) FROM transactions WHERE type="expense" AND strftime("%Y-%m",date)=?', (month,)
     ).fetchone()[0]
-
-    # Monthly cash flow: last 6 months
     months = []
     import datetime
     y, m = int(month[:4]), int(month[5:])
@@ -280,28 +339,21 @@ def overview():
         months.insert(0, f'{y}-{m:02d}')
         m -= 1
         if m == 0: m = 12; y -= 1
-
     flow = []
     for mo in months:
         inc = db.execute('SELECT COALESCE(SUM(amount),0) FROM transactions WHERE type="income" AND strftime("%Y-%m",date)=?',(mo,)).fetchone()[0]
         exp = db.execute('SELECT COALESCE(SUM(amount),0) FROM transactions WHERE type="expense" AND strftime("%Y-%m",date)=?',(mo,)).fetchone()[0]
         flow.append({'month': mo, 'income': inc, 'expenses': exp, 'savings': inc - exp})
-
-    # Category breakdown for current month
     cat_colors = {r['name']: r['color'] for r in db.execute('SELECT name, color FROM categories').fetchall()}
     cats = db.execute(
         'SELECT category, SUM(amount) as total FROM transactions WHERE type="expense" AND strftime("%Y-%m",date)=? GROUP BY category',
         (month,)
     ).fetchall()
     cat_data = [{'category': r['category'], 'total': r['total'], 'color': cat_colors.get(r['category'], '#888780')} for r in cats]
-
-    # Savings trend
     savings_trend = [{'month': f['month'], 'savings': f['savings']} for f in flow]
-
     total_goal_savings = db.execute('SELECT COALESCE(SUM(saved),0) FROM goals').fetchone()[0]
     total_budgeted = db.execute('SELECT COALESCE(SUM(amount),0) FROM budgets WHERE month=?', (month,)).fetchone()[0]
     after_full_budget = (income - expenses) - total_budgeted
-
     return jsonify({
         'income': income, 'expenses': expenses,
         'left_in_hand': income - expenses,
@@ -313,6 +365,7 @@ def overview():
     })
 
 @app.delete('/api/clear/<string:target>')
+@login_required
 def clear_data(target):
     db = get_db()
     if target == 'transactions':
@@ -332,12 +385,14 @@ def clear_data(target):
     return jsonify({'ok': True})
 
 @app.get('/api/settings')
+@login_required
 def get_settings():
     db = get_db()
     rows = db.execute('SELECT key, value FROM settings').fetchall()
     return jsonify({r['key']: r['value'] for r in rows})
 
 @app.put('/api/settings')
+@login_required
 def save_settings():
     db = get_db()
     for key, value in request.json.items():
@@ -346,11 +401,13 @@ def save_settings():
     return jsonify({'ok': True})
 
 @app.get('/api/categories')
+@login_required
 def list_categories():
     rows = get_db().execute('SELECT * FROM categories ORDER BY is_income, name').fetchall()
     return jsonify([dict(r) for r in rows])
 
 @app.post('/api/categories')
+@login_required
 def add_category():
     d = request.json
     db = get_db()
@@ -365,6 +422,7 @@ def add_category():
         return jsonify({'error': 'Name already exists'}), 409
 
 @app.put('/api/categories/<int:cid>')
+@login_required
 def update_category(cid):
     d = request.json
     db = get_db()
@@ -381,6 +439,7 @@ def update_category(cid):
         return jsonify({'error': 'Name already exists'}), 409
 
 @app.delete('/api/categories/<int:cid>')
+@login_required
 def delete_category(cid):
     db = get_db()
     db.execute('DELETE FROM categories WHERE id=?', (cid,))
@@ -388,6 +447,7 @@ def delete_category(cid):
     return jsonify({'ok': True})
 
 @app.get('/api/meta')
+@login_required
 def meta():
     db = get_db()
     cats = db.execute('SELECT * FROM categories ORDER BY is_income, name').fetchall()
