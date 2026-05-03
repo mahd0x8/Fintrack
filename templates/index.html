@@ -804,7 +804,7 @@ async function loadOverview(){
   const d = await api(`/api/overview?month=${currentMonth}`);
   document.getElementById('ov-goal-savings').textContent = fmt(d.total_goal_savings);
   document.getElementById('ov-expenses').textContent = fmt(d.expenses);
-  document.getElementById('ov-income').textContent = fmt(d.left_in_hand);
+  document.getElementById('ov-income').textContent = fmt(d.income);
   const afb = document.getElementById('ov-after-budget');
   afb.textContent = fmt(d.after_full_budget);
   afb.className = 'metric-value ' + (d.after_full_budget >= 0 ? 'green' : 'red');
@@ -941,8 +941,8 @@ async function editTx(id){
 async function loadBudgets(){
   const budgets = await api(`/api/budgets?month=${currentMonth}`);
   document.getElementById('bud-card-title').textContent = `Budget tracker — ${monthLabel(currentMonth)}`;
-  const total = budgets.reduce((s,b)=>s+b.amount,0);
-  const spent = budgets.reduce((s,b)=>s+b.spent,0);
+  const total = budgets.reduce((s,b)=>s+Math.abs(b.amount),0);
+  const spent = budgets.reduce((s,b)=>s+Math.abs(b.spent),0);
   document.getElementById('bud-total').textContent = fmt(total);
   document.getElementById('bud-spent').textContent = fmt(spent);
   const rem = total - spent;
@@ -1151,6 +1151,7 @@ async function saveTx(){
   const note = document.getElementById('f-note').value.trim();
   const goal_id = parseInt(document.getElementById('f-goal')?.value) || null;
   if(!name || !amount || !date){ showToast('Please fill all required fields'); return; }
+  if(amount <= 0){ showToast('Amount must be greater than zero'); return; }
   const body = {name, amount, type, category, date, note, goal_id};
   if(editingId){
     await api(`/api/transactions/${editingId}`,'PUT',body);
