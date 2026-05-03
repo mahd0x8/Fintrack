@@ -353,7 +353,14 @@ def overview():
     savings_trend = [{'month': f['month'], 'savings': f['savings']} for f in flow]
     total_goal_savings = db.execute('SELECT COALESCE(SUM(saved),0) FROM goals').fetchone()[0]
     total_budgeted = db.execute('SELECT COALESCE(SUM(amount),0) FROM budgets WHERE month=?', (month,)).fetchone()[0]
-    after_full_budget = (income - expenses) - total_budgeted
+    budget_spent = db.execute(
+        '''SELECT COALESCE(SUM(amount),0) FROM transactions
+           WHERE type="expense" AND strftime("%Y-%m",date)=?
+           AND category IN (SELECT category FROM budgets WHERE month=?)''',
+        (month, month)
+    ).fetchone()[0]
+    budget_remaining = total_budgeted - budget_spent
+    after_full_budget = (income - expenses) - budget_remaining
     return jsonify({
         'income': income, 'expenses': expenses,
         'left_in_hand': income - expenses,
