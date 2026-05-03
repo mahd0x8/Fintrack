@@ -210,7 +210,7 @@ button{cursor:pointer}
   /* Last metric full width if odd count */
   .metric:last-child:nth-child(odd){grid-column:1/-1}
   /* More padding bottom for bottom nav */
-  .app{padding-bottom:72px}
+  .app{padding-bottom:90px}
   /* Larger touch targets on tx actions */
   .tx-actions{opacity:1}
   .tx-actions button,.budget-actions button,.goal-actions button,.cat-actions button{padding:6px 10px}
@@ -223,21 +223,31 @@ button{cursor:pointer}
   background:var(--bg);
   border-top:0.5px solid var(--border);
   z-index:200;
-  padding:6px 0 env(safe-area-inset-bottom,6px);
+  padding:10px 0 env(safe-area-inset-bottom,10px);
 }
 @media(max-width:640px){.bottom-nav{display:flex}}
 .bnav-item{
-  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
-  background:none;border:none;color:var(--text3);font-size:10px;font-weight:500;
-  padding:6px 2px;transition:color .15s;
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
+  background:none;border:none;color:var(--text3);font-size:12px;font-weight:500;
+  padding:8px 4px;transition:color .15s;
 }
 .bnav-item.active{color:var(--purple)}
-.bnav-icon{font-size:20px;line-height:1;display:block}
+.bnav-icon{font-size:26px;line-height:1;display:block}
+
+/* Hide amounts button */
+.hide-btn{background:none;border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:5px 10px;font-size:13px;color:var(--text2);line-height:1}
+.hide-btn:hover{background:var(--bg2)}
+.amount-hidden .metric-value::after{content:'••••••';display:inline}
+.amount-hidden .metric-value>span{display:none}
+.amount-hidden .tx-amount>span{display:none}
+.amount-hidden .tx-amount::after{content:'••••'}
+.amount-hidden .bud-val>span{display:none}
+.amount-hidden .bud-val::after{content:'••••'}
 
 /* Floating action button */
 .fab{
   display:none;
-  position:fixed;bottom:68px;right:16px;
+  position:fixed;bottom:82px;right:16px;
   width:54px;height:54px;border-radius:50%;
   background:var(--purple);color:#fff;font-size:26px;
   border:none;box-shadow:0 4px 20px rgba(127,119,221,.45);
@@ -343,7 +353,8 @@ button{cursor:pointer}
       <div class="header-title">My Finances</div>
       <div class="header-sub" id="header-month">May 2026</div>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <button class="hide-btn" id="hide-btn" onclick="toggleAmounts()" title="Show/hide amounts">👁</button>
       <div class="month-nav">
         <button onclick="changeMonth(-1)">‹</button>
         <span class="month-label" id="month-label">May 2026</span>
@@ -674,9 +685,9 @@ function showTab(btn, id){
   btn.classList.add('active');
   document.getElementById(id).classList.add('active');
   syncBottomNav(id);
-  if(id==='transactions') loadTransactions();
-  if(id==='budgets') loadBudgets();
-  if(id==='goals') loadGoals();
+  if(id==='transactions') loadTransactions().then(()=>{ if(amountsHidden) applyAmountVisibility(); });
+  if(id==='budgets') loadBudgets().then(()=>{ if(amountsHidden) applyAmountVisibility(); });
+  if(id==='goals') loadGoals().then(()=>{ if(amountsHidden) applyAmountVisibility(); });
   if(id==='settings'){ renderSettingsTab(); renderCategoryList(); }
 }
 
@@ -689,9 +700,9 @@ function showTabMobile(btn, id){
   document.querySelectorAll('.nav button').forEach(b=>{
     b.classList.toggle('active', b.getAttribute('onclick')?.includes("'"+id+"'"));
   });
-  if(id==='transactions') loadTransactions();
-  if(id==='budgets') loadBudgets();
-  if(id==='goals') loadGoals();
+  if(id==='transactions') loadTransactions().then(()=>{ if(amountsHidden) applyAmountVisibility(); });
+  if(id==='budgets') loadBudgets().then(()=>{ if(amountsHidden) applyAmountVisibility(); });
+  if(id==='goals') loadGoals().then(()=>{ if(amountsHidden) applyAmountVisibility(); });
   if(id==='settings'){ renderSettingsTab(); renderCategoryList(); }
 }
 
@@ -1293,6 +1304,68 @@ async function saveGoal(){
   closeModal(); loadGoals();
 }
 
+// ── Hide amounts ──────────────────────────────────────────────────────────
+let amountsHidden = false;
+
+function toggleAmounts(){
+  amountsHidden = !amountsHidden;
+  document.getElementById('hide-btn').textContent = amountsHidden ? '🙈' : '👁';
+  applyAmountVisibility();
+}
+
+function applyAmountVisibility(){
+  const mask = '••••••';
+  // overview metrics
+  ['ov-income','ov-expenses','ov-cash-in-hand','ov-after-budget','ov-goal-savings'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    if(amountsHidden){
+      if(!el.dataset.real) el.dataset.real = el.textContent;
+      el.textContent = mask;
+    } else {
+      if(el.dataset.real) el.textContent = el.dataset.real;
+    }
+  });
+  // transaction amounts
+  document.querySelectorAll('.tx-amount').forEach(el=>{
+    if(amountsHidden){
+      if(!el.dataset.real) el.dataset.real = el.textContent;
+      el.textContent = el.textContent.startsWith('+') ? '+'+mask : '-'+mask;
+    } else {
+      if(el.dataset.real) el.textContent = el.dataset.real;
+    }
+  });
+  // budget numbers
+  document.querySelectorAll('.budget-nums').forEach(el=>{
+    if(amountsHidden){
+      if(!el.dataset.real) el.dataset.real = el.textContent;
+      el.textContent = mask+' / '+mask;
+    } else {
+      if(el.dataset.real) el.textContent = el.dataset.real;
+    }
+  });
+  // budget summary metrics
+  ['bud-total','bud-spent','bud-rem','goal-total'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    if(amountsHidden){
+      if(!el.dataset.real) el.dataset.real = el.textContent;
+      el.textContent = mask;
+    } else {
+      if(el.dataset.real) el.textContent = el.dataset.real;
+    }
+  });
+  // goal saved/target amounts
+  document.querySelectorAll('.goal-meta span').forEach(el=>{
+    if(amountsHidden){
+      if(!el.dataset.real) el.dataset.real = el.textContent;
+      el.textContent = el.textContent.includes('saved') ? mask+' saved' : 'Goal: '+mask;
+    } else {
+      if(el.dataset.real) el.textContent = el.dataset.real;
+    }
+  });
+}
+
 // ── Auth ──────────────────────────────────────────────────────────────────
 let pinEntry = '';
 
@@ -1415,12 +1488,13 @@ document.addEventListener('keydown', e=>{
 
 // ── Init ──────────────────────────────────────────────────────────────────
 async function refreshAll(){
-  loadOverview();
+  await loadOverview();
   const activeTab = document.querySelector('.section.active').id;
-  if(activeTab==='transactions') loadTransactions();
-  if(activeTab==='budgets') loadBudgets();
-  if(activeTab==='goals') loadGoals();
+  if(activeTab==='transactions') await loadTransactions();
+  if(activeTab==='budgets') await loadBudgets();
+  if(activeTab==='goals') await loadGoals();
   if(activeTab==='settings') renderSettingsTab();
+  if(amountsHidden) applyAmountVisibility();
 }
 
 async function initApp(){
