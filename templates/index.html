@@ -193,6 +193,60 @@ button{cursor:pointer}
 
 .empty{text-align:center;padding:2rem;color:var(--text3);font-size:13px}
 
+/* ── Mobile enhancements ── */
+@media(max-width:640px){
+  /* Hide desktop nav, show bottom nav */
+  .nav{display:none}
+  /* Hide header add button — replaced by FAB */
+  .header-add-btn{display:none}
+  /* Compact header */
+  .header{flex-direction:row;align-items:center;gap:8px;flex-wrap:nowrap}
+  .header>div:first-child{flex:1;min-width:0}
+  .header-title{font-size:18px}
+  /* Month nav stays right */
+  .header>div:last-child{flex-shrink:0}
+  /* Always 2 columns for metrics */
+  .metrics{grid-template-columns:1fr 1fr !important}
+  /* Last metric full width if odd count */
+  .metric:last-child:nth-child(odd){grid-column:1/-1}
+  /* More padding bottom for bottom nav */
+  .app{padding-bottom:72px}
+  /* Larger touch targets on tx actions */
+  .tx-actions{opacity:1}
+  .tx-actions button,.budget-actions button,.goal-actions button,.cat-actions button{padding:6px 10px}
+}
+
+/* Bottom nav bar */
+.bottom-nav{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--bg);
+  border-top:0.5px solid var(--border);
+  z-index:200;
+  padding:6px 0 env(safe-area-inset-bottom,6px);
+}
+@media(max-width:640px){.bottom-nav{display:flex}}
+.bnav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  background:none;border:none;color:var(--text3);font-size:10px;font-weight:500;
+  padding:6px 2px;transition:color .15s;
+}
+.bnav-item.active{color:var(--purple)}
+.bnav-icon{font-size:20px;line-height:1;display:block}
+
+/* Floating action button */
+.fab{
+  display:none;
+  position:fixed;bottom:68px;right:16px;
+  width:54px;height:54px;border-radius:50%;
+  background:var(--purple);color:#fff;font-size:26px;
+  border:none;box-shadow:0 4px 20px rgba(127,119,221,.45);
+  z-index:199;align-items:center;justify-content:center;
+  transition:transform .15s;
+}
+.fab:active{transform:scale(.93)}
+@media(max-width:640px){.fab{display:flex}}
+
 /* ── Auth screens ── */
 .auth-overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:500;padding:1rem}
 .auth-box{width:100%;max-width:340px;text-align:center}
@@ -295,7 +349,7 @@ button{cursor:pointer}
         <span class="month-label" id="month-label">May 2026</span>
         <button onclick="changeMonth(1)">›</button>
       </div>
-      <button class="btn-primary" onclick="openModal('tx')">+ Add transaction</button>
+      <button class="btn-primary header-add-btn" onclick="openModal('tx')">+ Add transaction</button>
     </div>
   </div>
 
@@ -485,6 +539,28 @@ button{cursor:pointer}
   </div>
 </div>
 
+<!-- FAB -->
+<button class="fab" onclick="openModal('tx')" title="Add transaction">＋</button>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav" id="bottomNav">
+  <button class="bnav-item active" id="bnav-overview" onclick="showTabMobile(this,'overview')">
+    <span class="bnav-icon">⌂</span>Overview
+  </button>
+  <button class="bnav-item" id="bnav-transactions" onclick="showTabMobile(this,'transactions')">
+    <span class="bnav-icon">⇄</span>Transactions
+  </button>
+  <button class="bnav-item" id="bnav-budgets" onclick="showTabMobile(this,'budgets')">
+    <span class="bnav-icon">◫</span>Budgets
+  </button>
+  <button class="bnav-item" id="bnav-goals" onclick="showTabMobile(this,'goals')">
+    <span class="bnav-icon">◎</span>Goals
+  </button>
+  <button class="bnav-item" id="bnav-settings" onclick="showTabMobile(this,'settings')">
+    <span class="bnav-icon">⚙</span>Settings
+  </button>
+</nav>
+
 <!-- MODAL -->
 <div class="modal-overlay" id="modal" style="display:none" onclick="if(event.target===this)closeModal()">
   <div class="modal" id="modal-body"></div>
@@ -597,10 +673,32 @@ function showTab(btn, id){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById(id).classList.add('active');
+  syncBottomNav(id);
   if(id==='transactions') loadTransactions();
   if(id==='budgets') loadBudgets();
   if(id==='goals') loadGoals();
   if(id==='settings'){ renderSettingsTab(); renderCategoryList(); }
+}
+
+function showTabMobile(btn, id){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.bnav-item').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  // sync top nav
+  document.querySelectorAll('.nav button').forEach(b=>{
+    b.classList.toggle('active', b.getAttribute('onclick')?.includes("'"+id+"'"));
+  });
+  if(id==='transactions') loadTransactions();
+  if(id==='budgets') loadBudgets();
+  if(id==='goals') loadGoals();
+  if(id==='settings'){ renderSettingsTab(); renderCategoryList(); }
+}
+
+function syncBottomNav(id){
+  document.querySelectorAll('.bnav-item').forEach(b=>{
+    b.classList.toggle('active', b.id === 'bnav-'+id);
+  });
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────
