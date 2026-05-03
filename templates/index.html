@@ -312,6 +312,7 @@ button{cursor:pointer}
     <div class="metrics" id="ov-metrics">
       <div class="metric"><div class="metric-label">Total income</div><div class="metric-value green" id="ov-income">—</div></div>
       <div class="metric"><div class="metric-label">Total expenses</div><div class="metric-value red" id="ov-expenses">—</div></div>
+      <div class="metric"><div class="metric-label">Cash in hand</div><div class="metric-value" id="ov-cash-in-hand">—</div></div>
       <div class="metric"><div class="metric-label">After full budget</div><div class="metric-value" id="ov-after-budget">—</div></div>
       <div class="metric"><div class="metric-label">Net savings</div><div class="metric-value purple" id="ov-goal-savings">—</div></div>
     </div>
@@ -805,6 +806,9 @@ async function loadOverview(){
   document.getElementById('ov-goal-savings').textContent = fmt(d.total_goal_savings);
   document.getElementById('ov-expenses').textContent = fmt(d.expenses);
   document.getElementById('ov-income').textContent = fmt(d.income);
+  const cih = document.getElementById('ov-cash-in-hand');
+  cih.textContent = fmt(d.left_in_hand);
+  cih.className = 'metric-value ' + (d.left_in_hand >= 0 ? 'green' : 'red');
   const afb = document.getElementById('ov-after-budget');
   afb.textContent = fmt(d.after_full_budget);
   afb.className = 'metric-value ' + (d.after_full_budget >= 0 ? 'green' : 'red');
