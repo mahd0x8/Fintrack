@@ -58,7 +58,8 @@
       "Bash(sudo cp *)",
       "Bash(python *)",
       "Bash(pkill -f \"python.*app.py\")",
-      "Bash(kill -9 49838 50147)"
+      "Bash(kill -9 49838 50147)",
+      "Bash(sqlite3 *)"
     ]
   }
 }
