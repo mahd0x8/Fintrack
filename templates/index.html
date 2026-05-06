@@ -1184,7 +1184,7 @@ function txForm(d=null){
     </select>
   </div>
   <div class="form-row"><label class="form-label">Category</label><select id="f-cat">${catOpts}</select></div>
-  <div class="form-row"><label class="form-label">Date</label><input id="f-date" type="date" value="${d?.date||currentMonth+'-01'}"></div>
+  <div class="form-row"><label class="form-label">Date</label><input id="f-date" type="date" value="${d?.date||new Date().toLocaleDateString('en-CA')}"></div>
   <div class="form-row" id="goal-row">
     <label class="form-label">Add to savings goal <span style="color:var(--text3);font-weight:400">(optional)</span></label>
     <select id="f-goal" onchange="onGoalSelect()">${goalOpts}</select>
@@ -1257,14 +1257,13 @@ function onGoalSelect(){
 
 async function saveTx(){
   const name = document.getElementById('f-name').value.trim();
-  const amount = parseFloat(document.getElementById('f-amount').value);
+  const amount = Math.abs(parseFloat(document.getElementById('f-amount').value));
   const type = document.getElementById('f-type').value;
   const category = document.getElementById('f-cat').value;
   const date = document.getElementById('f-date').value;
   const note = document.getElementById('f-note').value.trim();
   const goal_id = parseInt(document.getElementById('f-goal')?.value) || null;
   if(!name || !amount || !date){ showToast('Please fill all required fields'); return; }
-  if(amount <= 0){ showToast('Amount must be greater than zero'); return; }
   const body = {name, amount, type, category, date, note, goal_id};
   if(editingId){
     await api(`/api/transactions/${editingId}`,'PUT',body);
