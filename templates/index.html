@@ -858,7 +858,7 @@ async function exportCSV(){
   const sym = currentCurrency.symbol;
   const header = 'Date,Name,Type,Category,Amount,Note\n';
   const rows = txs.map(t=>
-    [t.date, `"${t.name}"`, t.type, t.category, (t.type==='expense'?'-':'')+t.amount, `"${t.note||''}"`].join(',')
+    [t.date, `"${t.name}"`, t.type, t.category, (t.type==='expense'?'-':'')+Math.abs(t.amount), `"${t.note||''}"`].join(',')
   ).join('\n');
   const blob = new Blob([header+rows], {type:'text/csv'});
   const a = document.createElement('a');
