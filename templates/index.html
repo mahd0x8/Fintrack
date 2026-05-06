@@ -354,7 +354,7 @@ button{cursor:pointer}
       <div class="header-sub" id="header-month">May 2026</div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <button class="hide-btn" id="hide-btn" onclick="toggleAmounts()" title="Show/hide amounts">👁</button>
+      <button class="hide-btn" id="hide-btn" onclick="toggleAmounts()" title="Show/hide amounts">🙈</button>
       <div class="month-nav">
         <button onclick="changeMonth(-1)">‹</button>
         <span class="month-label" id="month-label">May 2026</span>
@@ -375,10 +375,10 @@ button{cursor:pointer}
   <!-- OVERVIEW -->
   <div id="overview" class="section active">
     <div class="metrics" id="ov-metrics">
+      <div class="metric"><div class="metric-label">After full budget</div><div class="metric-value" id="ov-after-budget" style="font-weight:700;font-size:26px">—</div></div>
       <div class="metric"><div class="metric-label">Total income</div><div class="metric-value green" id="ov-income">—</div></div>
       <div class="metric"><div class="metric-label">Total expenses</div><div class="metric-value red" id="ov-expenses">—</div></div>
       <div class="metric"><div class="metric-label">Cash in hand</div><div class="metric-value" id="ov-cash-in-hand">—</div></div>
-      <div class="metric"><div class="metric-label">After full budget</div><div class="metric-value" id="ov-after-budget">—</div></div>
       <div class="metric"><div class="metric-label">Net savings</div><div class="metric-value purple" id="ov-goal-savings">—</div></div>
     </div>
     <div class="two-col">
@@ -1304,7 +1304,7 @@ async function saveGoal(){
 }
 
 // ── Hide amounts ──────────────────────────────────────────────────────────
-let amountsHidden = false;
+let amountsHidden = true;
 
 function toggleAmounts(){
   amountsHidden = !amountsHidden;
