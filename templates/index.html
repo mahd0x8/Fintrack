@@ -379,7 +379,7 @@ button{cursor:pointer}
       <div class="metric"><div class="metric-label">Total income</div><div class="metric-value green" id="ov-income">—</div></div>
       <div class="metric"><div class="metric-label">Total expenses</div><div class="metric-value red" id="ov-expenses">—</div></div>
       <div class="metric"><div class="metric-label">Cash in hand</div><div class="metric-value" id="ov-cash-in-hand">—</div></div>
-      <div class="metric"><div class="metric-label">Net savings</div><div class="metric-value purple" id="ov-net-savings">—</div></div>
+      <div class="metric"><div class="metric-label">Net savings</div><div class="metric-value purple" id="ov-goal-savings">—</div></div>
     </div>
     <div class="two-col">
       <div class="card">
@@ -912,9 +912,7 @@ async function executeClear(type){
 // ── Overview ──────────────────────────────────────────────────────────────
 async function loadOverview(){
   const d = await api(`/api/overview?month=${currentMonth}`);
-  const ns = document.getElementById('ov-net-savings');
-  ns.textContent = fmt(d.left_in_hand);
-  ns.className = 'metric-value purple ' + (d.left_in_hand >= 0 ? 'green' : 'red');
+  document.getElementById('ov-goal-savings').textContent = fmt(d.total_goal_savings);
   document.getElementById('ov-expenses').textContent = fmt(d.expenses);
   document.getElementById('ov-income').textContent = fmt(d.income);
   const cih = document.getElementById('ov-cash-in-hand');
@@ -980,7 +978,7 @@ async function loadOverview(){
     data:{
       labels: d.savings_trend.map(f=>{const [y,m]=f.month.split('-');return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m)-1]+' '+y}),
       datasets:[{
-        label:'Net savings', data:trendData,
+        label:'Goal savings', data:trendData,
         borderColor:'#7F77DD', backgroundColor:'rgba(127,119,221,0.12)',
         fill:true, tension:0.4, pointRadius:5, pointBackgroundColor:trendColors, borderWidth:2
       }]
@@ -989,7 +987,7 @@ async function loadOverview(){
       responsive:true, maintainAspectRatio:false,
       plugins:{
         legend:{display:false},
-        tooltip:{callbacks:{label:ctx=>' Net savings: '+fmtK(ctx.parsed.y)}}
+        tooltip:{callbacks:{label:ctx=>' Goal savings: '+fmtK(ctx.parsed.y)}}
       },
       scales:{
         x:{grid:{display:false},ticks:{color:tickColor,font:{size:11}}},
@@ -1323,7 +1321,7 @@ function toggleAmounts(){
 function applyAmountVisibility(){
   const mask = '••••••';
   // overview metrics
-  ['ov-income','ov-expenses','ov-cash-in-hand','ov-after-budget','ov-net-savings'].forEach(id=>{
+  ['ov-income','ov-expenses','ov-cash-in-hand','ov-after-budget','ov-goal-savings'].forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
     if(amountsHidden){

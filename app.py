@@ -345,14 +345,15 @@ def overview():
     for mo in months:
         inc = db.execute('SELECT COALESCE(SUM(amount),0) FROM transactions WHERE type="income" AND strftime("%Y-%m",date)=?',(mo,)).fetchone()[0]
         exp = db.execute('SELECT COALESCE(SUM(ABS(amount)),0) FROM transactions WHERE type="expense" AND strftime("%Y-%m",date)=?',(mo,)).fetchone()[0]
-        flow.append({'month': mo, 'income': inc, 'expenses': exp, 'savings': inc - exp})
+        goal_sav = db.execute('SELECT COALESCE(SUM(ABS(amount)),0) FROM transactions WHERE goal_id IS NOT NULL AND strftime("%Y-%m",date)=?',(mo,)).fetchone()[0]
+        flow.append({'month': mo, 'income': inc, 'expenses': exp, 'savings': inc - exp, 'goal_savings': goal_sav})
     cat_colors = {r['name']: r['color'] for r in db.execute('SELECT name, color FROM categories').fetchall()}
     cats = db.execute(
         'SELECT category, SUM(amount) as total FROM transactions WHERE type="expense" AND strftime("%Y-%m",date)=? GROUP BY category',
         (month,)
     ).fetchall()
     cat_data = [{'category': r['category'], 'total': r['total'], 'color': cat_colors.get(r['category'], '#888780')} for r in cats]
-    savings_trend = [{'month': f['month'], 'savings': f['savings']} for f in flow]
+    savings_trend = [{'month': f['month'], 'savings': f['goal_savings']} for f in flow]
     total_goal_savings = db.execute('SELECT COALESCE(SUM(saved),0) FROM goals').fetchone()[0]
     total_budgeted = db.execute('SELECT COALESCE(SUM(amount),0) FROM budgets WHERE month=?', (month,)).fetchone()[0]
     budget_spent = db.execute(
