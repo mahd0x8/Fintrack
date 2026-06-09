@@ -1169,7 +1169,8 @@ function closeModal(){
 
 function txForm(d=null){
   const sym = currentCurrency.symbol;
-  const catOpts = META.categories.map(c=>`<option value="${c}" ${d?.category===c?'selected':''}>${c}</option>`).join('');
+  const defaultCat = d?.category || 'Other';
+  const catOpts = META.categories.map(c=>`<option value="${c}" ${defaultCat===c?'selected':''}>${c}</option>`).join('');
   const goals = META.goals || [];
   const goalOpts = `<option value="">None — regular transaction</option>` +
     goals.map(g=>`<option value="${g.id}" ${d?.goal_id==g.id?'selected':''}>${g.name} (${fmt(g.saved)} / ${fmt(g.target)})</option>`).join('');
