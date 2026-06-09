@@ -247,7 +247,8 @@ def update_transaction(tid):
 @login_required
 def list_budgets():
     db = get_db()
-    month = request.args.get('month', '2026-05')
+    from datetime import date
+    month = request.args.get('month') or date.today().strftime('%Y-%m')
     cat_colors = {r['name']: r['color'] for r in db.execute('SELECT name, color FROM categories').fetchall()}
     budgets = db.execute('SELECT * FROM budgets WHERE month=?', (month,)).fetchall()
     result = []
@@ -325,7 +326,8 @@ def delete_goal(gid):
 @login_required
 def overview():
     db = get_db()
-    month = request.args.get('month', '2026-05')
+    from datetime import date
+    month = request.args.get('month') or date.today().strftime('%Y-%m')
     income = db.execute(
         'SELECT COALESCE(SUM(amount),0) FROM transactions WHERE type="income" AND strftime("%Y-%m",date)=?', (month,)
     ).fetchone()[0]

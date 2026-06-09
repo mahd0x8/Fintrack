@@ -606,7 +606,7 @@ const CURRENCIES = [
 ];
 
 // ── State ─────────────────────────────────────────────────────────────────
-let currentMonth = '2026-05';
+let currentMonth = new Date().toISOString().slice(0, 7);
 let editingId = null;
 let cashChart, pieChart, lineChart;
 let META = { categories: [], cat_colors: {}, cat_icons: {} };
