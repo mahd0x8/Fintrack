@@ -410,6 +410,8 @@ button{cursor:pointer}
       <select id="tx-cat" onchange="loadTransactions()">
         <option value="">All categories</option>
       </select>
+      <input type="number" id="tx-min-amount" placeholder="Min amount" min="0" step="1" oninput="debouncedLoadTx()" style="min-width:110px;flex:0 1 130px">
+      <input type="number" id="tx-max-amount" placeholder="Max amount" min="0" step="1" oninput="debouncedLoadTx()" style="min-width:110px;flex:0 1 130px">
     </div>
     <div class="card" style="padding:0.5rem 1.25rem" id="tx-list"><div class="spinner"></div></div>
   </div>
@@ -1002,10 +1004,14 @@ async function loadTransactions(){
   const q = document.getElementById('tx-search').value;
   const type = document.getElementById('tx-type').value;
   const cat = document.getElementById('tx-cat').value;
+  const minAmt = document.getElementById('tx-min-amount').value;
+  const maxAmt = document.getElementById('tx-max-amount').value;
   const params = new URLSearchParams({month:currentMonth});
   if(q) params.set('q',q);
   if(type) params.set('type',type);
   if(cat) params.set('category',cat);
+  if(minAmt) params.set('min_amount', minAmt);
+  if(maxAmt) params.set('max_amount', maxAmt);
 
   const txs = await api(`/api/transactions?${params}`);
   const el = document.getElementById('tx-list');

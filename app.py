@@ -181,6 +181,8 @@ def list_transactions():
     typ = request.args.get('type','')
     cat = request.args.get('category','')
     month = request.args.get('month','')
+    min_amount = request.args.get('min_amount','').strip()
+    max_amount = request.args.get('max_amount','').strip()
     sql = '''SELECT t.*, g.name as goal_name
              FROM transactions t LEFT JOIN goals g ON t.goal_id = g.id
              WHERE 1=1'''
@@ -193,6 +195,12 @@ def list_transactions():
         sql += ' AND t.category=?'; params.append(cat)
     if month:
         sql += ' AND strftime("%Y-%m",t.date)=?'; params.append(month)
+    if min_amount:
+        try: sql += ' AND ABS(t.amount)>=?'; params.append(float(min_amount))
+        except ValueError: pass
+    if max_amount:
+        try: sql += ' AND ABS(t.amount)<=?'; params.append(float(max_amount))
+        except ValueError: pass
     sql += ' ORDER BY t.date DESC, t.id DESC'
     rows = db.execute(sql, params).fetchall()
     return jsonify([dict(r) for r in rows])
