@@ -351,13 +351,13 @@ button{cursor:pointer}
   <div class="header">
     <div>
       <div class="header-title">My Finances</div>
-      <div class="header-sub" id="header-month">May 2026</div>
+      <div class="header-sub" id="header-month"></div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <button class="hide-btn" id="hide-btn" onclick="toggleAmounts()" title="Show/hide amounts">🙈</button>
       <div class="month-nav">
         <button onclick="changeMonth(-1)">‹</button>
-        <span class="month-label" id="month-label">May 2026</span>
+        <span class="month-label" id="month-label"></span>
         <button onclick="changeMonth(1)">›</button>
       </div>
       <button class="btn-primary header-add-btn" onclick="openModal('tx')">+ Add transaction</button>
@@ -1497,6 +1497,8 @@ async function refreshAll(){
 }
 
 async function initApp(){
+  document.getElementById('month-label').textContent = monthLabel(currentMonth);
+  document.getElementById('header-month').textContent = monthLabel(currentMonth);
   [META] = await Promise.all([api('/api/meta')]);
   await loadSettings();
   const catSel = document.getElementById('tx-cat');
