@@ -254,7 +254,7 @@ def list_budgets():
     result = []
     for b in budgets:
         spent = db.execute(
-            'SELECT COALESCE(SUM(amount),0) FROM transactions WHERE category=? AND type="expense" AND strftime("%Y-%m",date)=?',
+            'SELECT COALESCE(SUM(ABS(amount)),0) FROM transactions WHERE category=? AND type="expense" AND strftime("%Y-%m",date)=?',
             (b['category'], month)
         ).fetchone()[0]
         result.append({**dict(b), 'spent': spent, 'color': cat_colors.get(b['category'], '#888780')})
@@ -332,7 +332,7 @@ def overview():
         'SELECT COALESCE(SUM(amount),0) FROM transactions WHERE type="income" AND strftime("%Y-%m",date)=?', (month,)
     ).fetchone()[0]
     expenses = db.execute(
-        'SELECT COALESCE(SUM(amount),0) FROM transactions WHERE type="expense" AND strftime("%Y-%m",date)=?', (month,)
+        'SELECT COALESCE(SUM(ABS(amount)),0) FROM transactions WHERE type="expense" AND strftime("%Y-%m",date)=?', (month,)
     ).fetchone()[0]
     months = []
     import datetime
@@ -344,7 +344,7 @@ def overview():
     flow = []
     for mo in months:
         inc = db.execute('SELECT COALESCE(SUM(amount),0) FROM transactions WHERE type="income" AND strftime("%Y-%m",date)=?',(mo,)).fetchone()[0]
-        exp = db.execute('SELECT COALESCE(SUM(amount),0) FROM transactions WHERE type="expense" AND strftime("%Y-%m",date)=?',(mo,)).fetchone()[0]
+        exp = db.execute('SELECT COALESCE(SUM(ABS(amount)),0) FROM transactions WHERE type="expense" AND strftime("%Y-%m",date)=?',(mo,)).fetchone()[0]
         flow.append({'month': mo, 'income': inc, 'expenses': exp, 'savings': inc - exp})
     cat_colors = {r['name']: r['color'] for r in db.execute('SELECT name, color FROM categories').fetchall()}
     cats = db.execute(
@@ -356,7 +356,7 @@ def overview():
     total_goal_savings = db.execute('SELECT COALESCE(SUM(saved),0) FROM goals').fetchone()[0]
     total_budgeted = db.execute('SELECT COALESCE(SUM(amount),0) FROM budgets WHERE month=?', (month,)).fetchone()[0]
     budget_spent = db.execute(
-        '''SELECT COALESCE(SUM(amount),0) FROM transactions
+        '''SELECT COALESCE(SUM(ABS(amount)),0) FROM transactions
            WHERE type="expense" AND strftime("%Y-%m",date)=?
            AND category IN (SELECT category FROM budgets WHERE month=?)''',
         (month, month)
