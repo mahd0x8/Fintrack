@@ -475,17 +475,9 @@ button{cursor:pointer}
 }
 .auth-link:hover{opacity:.75}
 
-/* ── Mobile ── */
+/* ── Legacy mobile (kept for bottom nav / FAB breakpoints at 640px) ── */
 @media(max-width:640px){
-  .nav{display:none}
-  .header-add-btn{display:none}
-  .header{flex-direction:row;align-items:center;gap:8px;flex-wrap:nowrap}
-  .header-right{flex-wrap:nowrap}
-  .app{padding-bottom:90px}
-  .tx-actions{opacity:1}
   .tx-actions button,.budget-actions button,.goal-actions button,.cat-actions button{padding:6px 10px}
-  .metrics-stack{gap:8px}
-  .metric-card-value{font-size:1.8rem}
 }
 
 /* Bottom nav */
@@ -527,6 +519,172 @@ button{cursor:pointer}
   background:rgba(67,209,138,0.08);
   border:1px solid rgba(67,209,138,0.2);
   border-radius:8px;
+}
+
+/* ════════════════════════════════════════════════
+   FULL-SCREEN DASHBOARD LAYOUT
+   ════════════════════════════════════════════════ */
+html,body{height:100%;overflow:hidden}
+
+.dashboard{
+  display:flex;
+  width:100vw;
+  height:100vh;
+  overflow:hidden;
+}
+
+/* ── Sidebar ── */
+.sidebar{
+  width:220px;
+  flex-shrink:0;
+  background:var(--bg2);
+  border-right:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  padding:1.25rem 0.75rem 1rem;
+  height:100vh;
+  overflow-y:auto;
+  scrollbar-width:none;
+}
+.sidebar::-webkit-scrollbar{display:none}
+
+.sidebar-logo{
+  display:flex;align-items:center;gap:10px;
+  padding:0 0.5rem;margin-bottom:1.75rem;flex-shrink:0;
+}
+
+/* Vertical nav inside sidebar — override horizontal styles */
+.sidebar .nav{
+  display:flex !important;
+  flex-direction:column;
+  gap:2px;
+  border-bottom:none;
+  overflow:visible;
+  flex:1;
+  margin-bottom:0;
+}
+.sidebar .nav button{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 12px;
+  border-radius:10px;
+  border:none !important;
+  border-bottom:none !important;
+  background:transparent;
+  color:var(--text2);
+  font-size:13px;font-weight:500;
+  text-align:left;
+  margin-bottom:0 !important;
+  width:100%;
+  white-space:nowrap;
+  transition:all .15s;
+}
+.sidebar .nav button.active{
+  background:rgba(67,209,138,0.12);
+  color:var(--green);
+  border-bottom:none !important;
+}
+.sidebar .nav button:hover:not(.active){
+  background:rgba(255,255,255,0.04);
+  color:var(--text);
+}
+.nav-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0;opacity:.9}
+
+.sidebar-bottom{
+  margin-top:auto;
+  padding-top:1rem;
+  border-top:1px solid var(--border);
+}
+.sidebar-add-btn{
+  width:100%;padding:10px 12px;
+  border-radius:10px;border:none;
+  background:rgba(67,209,138,0.12);
+  color:var(--green);
+  font-size:13px;font-weight:600;
+  text-align:left;
+  display:flex;align-items:center;gap:10px;
+  cursor:pointer;transition:background .15s;
+}
+.sidebar-add-btn:hover{background:rgba(67,209,138,0.2)}
+
+/* ── Main column ── */
+.main{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+  overflow:hidden;
+  min-width:0;
+}
+
+/* ── Top bar ── */
+.topbar{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:0 1.5rem;
+  height:58px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+  background:var(--bg);
+  gap:1rem;
+}
+.topbar-left{display:flex;align-items:center;gap:10px;min-width:0}
+.topbar-section-name{font-size:15px;font-weight:600;color:var(--text)}
+.topbar-sep{color:var(--text3);font-size:14px}
+.topbar-month-text{font-size:13px;color:var(--text3)}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+
+/* ── Scrollable content ── */
+.content{
+  flex:1;
+  overflow-y:auto;
+  padding:1.5rem;
+  scrollbar-width:thin;
+  scrollbar-color:var(--bg3) transparent;
+}
+.content::-webkit-scrollbar{width:5px}
+.content::-webkit-scrollbar-track{background:transparent}
+.content::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:4px}
+
+/* ── Overview metrics grid (5 across) ── */
+.metrics-grid{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:12px;
+  margin-bottom:1.25rem;
+}
+/* Compact card for grid layout */
+.metrics-grid .metric-card{padding:14px 16px 12px}
+.metrics-grid .metric-card-value{font-size:1.55rem;margin-bottom:6px}
+.metrics-grid .metric-card-spark{height:28px}
+
+/* ── Charts side-by-side ── */
+.charts-row{
+  display:grid;
+  grid-template-columns:3fr 2fr;
+  gap:1rem;
+  margin-bottom:1rem;
+}
+.charts-row .card{margin-bottom:0}
+
+/* ── Responsive ── */
+@media(max-width:1100px){
+  .metrics-grid{grid-template-columns:repeat(3,1fr)}
+  .metrics-grid .metric-card:nth-child(4){grid-column:1/2}
+  .metrics-grid .metric-card:nth-child(5){grid-column:2/3}
+}
+@media(max-width:768px){
+  .sidebar{display:none}
+  .main{height:100vh}
+  .topbar{padding:0 1rem;height:52px}
+  .content{padding:1rem;padding-bottom:90px}
+  .metrics-grid{grid-template-columns:repeat(2,1fr)}
+  .metrics-grid .metric-card:last-child:nth-child(odd){grid-column:1/-1}
+  .charts-row{grid-template-columns:1fr}
+  .tx-actions{opacity:1}
+  .bottom-nav{display:flex}
+  .fab{display:flex}
+  .topbar .header-add-btn{display:none}
 }
 </style>
 </head>
@@ -609,48 +767,73 @@ button{cursor:pointer}
 
 </div>
 
-<div class="app" id="mainApp" style="display:none">
+<div class="dashboard" id="mainApp" style="display:none">
 
-  <!-- HEADER -->
-  <div class="header">
-    <div class="header-left">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
       <div class="header-logo">
         <svg viewBox="0 0 24 24" fill="none" stroke="#0d1a12" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
         </svg>
       </div>
-      <div class="header-breadcrumb">
-        <span class="header-brand">FinTrack</span>
-        <span class="header-sep">/</span>
-        <span class="header-section" id="header-section-name">Overview</span>
-      </div>
+      <span class="header-brand">FinTrack</span>
     </div>
-    <div class="header-right">
-      <span class="header-month-text" id="header-month"></span>
-      <button class="hide-btn" id="hide-btn" onclick="toggleAmounts()" title="Show/hide amounts">🙈</button>
-      <div class="month-nav">
-        <button onclick="changeMonth(-1)">‹</button>
-        <span class="month-label" id="month-label"></span>
-        <button onclick="changeMonth(1)">›</button>
-      </div>
-      <button class="btn-primary header-add-btn" onclick="openModal('tx')">+ Add</button>
-    </div>
-  </div>
 
-  <!-- NAV TABS -->
-  <nav class="nav" role="tablist">
-    <button class="active" onclick="showTab(this,'overview')">Overview</button>
-    <button onclick="showTab(this,'transactions')">Transactions</button>
-    <button onclick="showTab(this,'budgets')">Budgets</button>
-    <button onclick="showTab(this,'goals')">Savings goals</button>
-    <button onclick="showTab(this,'settings')">Settings</button>
-  </nav>
+    <nav class="nav" role="tablist">
+      <button class="active" onclick="showTab(this,'overview')">
+        <span class="nav-icon">◈</span>Overview
+      </button>
+      <button onclick="showTab(this,'transactions')">
+        <span class="nav-icon">⇄</span>Transactions
+      </button>
+      <button onclick="showTab(this,'budgets')">
+        <span class="nav-icon">▤</span>Budgets
+      </button>
+      <button onclick="showTab(this,'goals')">
+        <span class="nav-icon">◎</span>Goals
+      </button>
+      <button onclick="showTab(this,'settings')">
+        <span class="nav-icon">⚙</span>Settings
+      </button>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <button class="sidebar-add-btn" onclick="openModal('tx')">
+        <span style="font-size:18px;line-height:1">＋</span>Add transaction
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN AREA -->
+  <div class="main">
+
+    <!-- TOP BAR -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <span class="topbar-section-name" id="header-section-name">Overview</span>
+        <span class="topbar-sep">/</span>
+        <span class="topbar-month-text" id="header-month"></span>
+      </div>
+      <div class="topbar-right">
+        <button class="hide-btn" id="hide-btn" onclick="toggleAmounts()" title="Show/hide amounts">🙈</button>
+        <div class="month-nav">
+          <button onclick="changeMonth(-1)">‹</button>
+          <span class="month-label" id="month-label"></span>
+          <button onclick="changeMonth(1)">›</button>
+        </div>
+        <button class="btn-primary header-add-btn" onclick="openModal('tx')">+ Add</button>
+      </div>
+    </div>
+
+    <!-- SCROLLABLE CONTENT -->
+    <div class="content">
 
   <!-- OVERVIEW -->
   <div id="overview" class="section active">
 
-    <!-- Metric cards — stacked -->
-    <div class="metrics-stack" id="ov-metrics">
+    <!-- Metric cards — 5-column grid -->
+    <div class="metrics-grid" id="ov-metrics">
       <div class="metric-card">
         <div class="metric-card-top">
           <div class="metric-card-label">After full budget</div>
@@ -693,18 +876,20 @@ button{cursor:pointer}
       </div>
     </div>
 
-    <!-- Charts -->
-    <div class="card">
-      <div class="card-title">Monthly cash flow</div>
-      <div style="position:relative;height:200px"><canvas id="cashChart"></canvas></div>
+    <!-- Charts row: cash flow + pie side by side -->
+    <div class="charts-row">
+      <div class="card">
+        <div class="card-title">Monthly cash flow</div>
+        <div style="position:relative;height:220px"><canvas id="cashChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Spending by category</div>
+        <div style="position:relative;height:160px"><canvas id="pieChart"></canvas></div>
+        <div id="pie-legend"></div>
+      </div>
     </div>
 
-    <div class="card">
-      <div class="card-title">Spending by category</div>
-      <div style="position:relative;height:180px"><canvas id="pieChart"></canvas></div>
-      <div id="pie-legend"></div>
-    </div>
-
+    <!-- Savings trend full width -->
     <div class="card">
       <div class="card-title-row">
         <span class="card-title-label">Savings trend</span>
@@ -865,8 +1050,9 @@ button{cursor:pointer}
       </div>
     </div>
 
-  </div>
-</div>
+    </div><!-- /.content -->
+  </div><!-- /.main -->
+</div><!-- /.dashboard -->
 
 <!-- FAB -->
 <button class="fab" onclick="openModal('tx')" title="Add transaction">＋</button>
