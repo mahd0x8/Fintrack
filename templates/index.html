@@ -27,6 +27,57 @@
   --purple: #8b7cf6;
   --orange: #f0a050;
 }
+
+/* ── Light theme ── */
+html[data-theme="light"] {
+  --bg: #f4f6fb;
+  --bg2: #ffffff;
+  --bg3: #edf0f7;
+  --bg4: #e2e6f0;
+  --text: #16191f;
+  --text2: #525a6e;
+  --text3: #98a0b4;
+  --border: rgba(0,0,0,0.08);
+  --border2: rgba(0,0,0,0.14);
+  --green: #1aad6a;
+  --red: #d94040;
+  --cyan: #2896cc;
+  --purple: #6b5cf0;
+  --orange: #d97706;
+}
+html[data-theme="light"] .sidebar { box-shadow: 2px 0 12px rgba(0,0,0,0.06); }
+html[data-theme="light"] .topbar  { box-shadow: 0 1px 8px rgba(0,0,0,0.06); }
+html[data-theme="light"] .metric-card { box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+html[data-theme="light"] .card    { box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+html[data-theme="light"] .modal   { box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+html[data-theme="light"] .tx-row:hover { background: rgba(0,0,0,0.025); }
+html[data-theme="light"] .sidebar .nav button:hover:not(.active) { background: rgba(0,0,0,0.04); }
+html[data-theme="light"] .nav button:hover:not(.active) { background: rgba(0,0,0,0.03); }
+
+/* ── Auto: follow system ── */
+@media(prefers-color-scheme:light){
+  html:not([data-theme="dark"]) {
+    --bg: #f4f6fb;
+    --bg2: #ffffff;
+    --bg3: #edf0f7;
+    --bg4: #e2e6f0;
+    --text: #16191f;
+    --text2: #525a6e;
+    --text3: #98a0b4;
+    --border: rgba(0,0,0,0.08);
+    --border2: rgba(0,0,0,0.14);
+    --green: #1aad6a;
+    --red: #d94040;
+    --cyan: #2896cc;
+    --purple: #6b5cf0;
+    --orange: #d97706;
+  }
+  html:not([data-theme="dark"]) .sidebar { box-shadow: 2px 0 12px rgba(0,0,0,0.06); }
+  html:not([data-theme="dark"]) .topbar  { box-shadow: 0 1px 8px rgba(0,0,0,0.06); }
+  html:not([data-theme="dark"]) .metric-card { box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+  html:not([data-theme="dark"]) .card    { box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+  html:not([data-theme="dark"]) .tx-row:hover { background: rgba(0,0,0,0.025); }
+}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 a{color:inherit;text-decoration:none}
@@ -43,7 +94,7 @@ input,select,textarea{
 }
 input:focus,select:focus,textarea:focus{border-color:var(--green)}
 input::placeholder{color:var(--text3)}
-select option{background:#252930}
+select option{background:var(--bg3);color:var(--text)}
 button{cursor:pointer}
 
 .app{max-width:860px;margin:0 auto;padding:1.25rem 1rem}
@@ -1277,6 +1328,7 @@ async function onThemeChange(theme){
   });
   await saveSettingsToDB();
   showToast(`Theme set to ${theme}`);
+  loadOverview();
 }
 
 // ── Categories ────────────────────────────────────────────────────────────
@@ -1477,8 +1529,11 @@ async function loadOverview(){
   afb.textContent = fmt(d.after_full_budget);
   afb.className = 'metric-card-value ' + (d.after_full_budget >= 0 ? 'green' : 'red');
 
-  const gridColor = 'rgba(255,255,255,0.06)';
-  const tickColor = '#4e5360';
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark' ||
+                 (document.documentElement.getAttribute('data-theme') !== 'light' &&
+                  matchMedia('(prefers-color-scheme:dark)').matches);
+  const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+  const tickColor = isDark ? '#4e5360' : '#98a0b4';
 
   // Draw sparklines
   const cfData = d.cash_flow || [];
