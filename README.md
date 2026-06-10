@@ -12,7 +12,7 @@ A full-stack personal finance web application built with Flask and SQLite. Track
 ![App on Laptop](Screenshots/App%20on%20Laptop.png)
 
 ### Mobile
-![App on Mobile](Screenshots/APP%20on%20Mobile.jpeg)
+![App on Mobile](Screenshots/APP%20on%20Mobile.png)
 
 ---
 
@@ -65,7 +65,7 @@ Financing/
 │   └── money-management.png
 ├── Screenshots/
 │   ├── App on Laptop.png
-│   └── APP on Mobile.jpeg
+│   └── APP on Mobile.png
 ├── Dockerfile
 ├── docker-compose.yml      # Local development with named volume
 ├── requirements.txt
