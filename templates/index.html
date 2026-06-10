@@ -160,12 +160,17 @@ button{cursor:pointer}
 }
 .btn-danger-outline:hover{background:var(--red);color:#fff}
 .hide-btn{
-  background:transparent;border:1px solid var(--border);
-  border-radius:var(--radius-sm);padding:5px 10px;
-  font-size:13px;color:var(--text2);line-height:1;
+  background:transparent;
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  width:34px;height:34px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text2);
   transition:all .15s;
+  flex-shrink:0;
 }
-.hide-btn:hover{background:var(--bg3);border-color:var(--border2)}
+.hide-btn:hover{background:var(--bg3);border-color:var(--border2);color:var(--text)}
+.hide-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 
 /* ── Nav ── */
 .nav{
@@ -868,7 +873,12 @@ html,body{height:100%;overflow:hidden}
         <span class="topbar-month-text" id="header-month"></span>
       </div>
       <div class="topbar-right">
-        <button class="hide-btn" id="hide-btn" onclick="toggleAmounts()" title="Show/hide amounts">🙈</button>
+        <button class="hide-btn" id="hide-btn" onclick="toggleAmounts()" title="Show/hide amounts">
+          <!-- eye-off shown when amounts are hidden (default) -->
+          <svg id="hide-icon-off" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          <!-- eye shown when amounts are visible -->
+          <svg id="hide-icon-on" viewBox="0 0 24 24" style="display:none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
         <div class="month-nav">
           <button onclick="changeMonth(-1)">‹</button>
           <span class="month-label" id="month-label"></span>
@@ -1978,7 +1988,8 @@ let amountsHidden = true;
 
 function toggleAmounts(){
   amountsHidden = !amountsHidden;
-  document.getElementById('hide-btn').textContent = amountsHidden ? '🙈' : '👁';
+  document.getElementById('hide-icon-off').style.display = amountsHidden ? '' : 'none';
+  document.getElementById('hide-icon-on').style.display  = amountsHidden ? 'none' : '';
   applyAmountVisibility();
 }
 
