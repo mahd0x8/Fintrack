@@ -672,8 +672,6 @@ html,body{height:100%;overflow:hidden}
 /* ── Responsive ── */
 @media(max-width:1100px){
   .metrics-grid{grid-template-columns:repeat(3,1fr)}
-  .metrics-grid .metric-card:nth-child(4){grid-column:1/2}
-  .metrics-grid .metric-card:nth-child(5){grid-column:2/3}
 }
 @media(max-width:768px){
   .sidebar{display:none}
@@ -681,6 +679,7 @@ html,body{height:100%;overflow:hidden}
   .topbar{padding:0 1rem;height:52px}
   .content{padding:1rem;padding-bottom:90px}
   .metrics-grid{grid-template-columns:repeat(2,1fr)}
+  .metrics-grid .metric-card{grid-column:auto}
   .metrics-grid .metric-card:last-child:nth-child(odd){grid-column:1/-1}
   .charts-row{grid-template-columns:1fr}
   .tx-actions{opacity:1}
