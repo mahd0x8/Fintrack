@@ -176,6 +176,8 @@ button{cursor:pointer}
   border-radius:var(--radius);
   padding:1.25rem;
   margin-bottom:1rem;
+  overflow:hidden;
+  min-width:0;
 }
 .card-title{
   font-size:11px;font-weight:700;color:var(--text3);
@@ -884,7 +886,7 @@ html,body{height:100%;overflow:hidden}
       </div>
       <div class="card">
         <div class="card-title">Spending by category</div>
-        <div style="position:relative;height:160px"><canvas id="pieChart"></canvas></div>
+        <div style="position:relative;height:160px;width:100%"><canvas id="pieChart"></canvas></div>
         <div id="pie-legend"></div>
       </div>
     </div>
